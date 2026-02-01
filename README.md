@@ -1,7 +1,7 @@
 
   
 
-# LaraMint ( LMS + GAMIFICATION )
+# Quipenz ( LMS + GAMIFICATION )
 
 ## _Learning every thing with fun and game_
 
@@ -21,7 +21,7 @@
 
 Clone the repository
 
-    git clone git@github.com:Muhammad-Ridwan-Al-Hafiidh/Project-Akhir-Semester3-QUIPENs.git
+    git clone git@github.com:Muhammad-Ridwan-Al-Hafiidh/Project-Akhir-Lanjut-Jenjang-QUIPENs.git
 
 Switch to the repo folder
 
