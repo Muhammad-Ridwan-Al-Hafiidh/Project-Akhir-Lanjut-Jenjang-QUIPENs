@@ -5,28 +5,22 @@ namespace App\Utility\Workout;
 use App\Models\Participant;
 use App\Models\Quiz;
 use App\Models\Sessionable;
-use App\Models\Term;
 use App\Models\User;
 use App\Models\Workout;
 use App\Models\WorkoutQuizLog;
+use App\Models\Question;
 
 abstract class WorkoutService
 {
-
     public static function checkExistWorkout(int $participant_id, Sessionable $sessionable, User $user): ?Workout
     {
-
-        $workout = Workout::where('participant_id', $participant_id)
+        return Workout::where('participant_id', $participant_id)
             ->where('sessionable_id', $sessionable->id)
             ->first();
-
-        return $workout;
     }
-
 
     public static function WorkOutSyncForThisExcersice(Participant $participant, Sessionable $sessionable, User $user): Workout
     {
-
         $workout = self::checkExistWorkout($participant->id, $sessionable, $user);
         if (empty($workout)) {
             $workout = new Workout();
@@ -36,26 +30,38 @@ abstract class WorkoutService
             $workout->is_completed = 0;
             $workout->score = 0;
             $workout->save();
-            return $workout;
         }
-
         return $workout;
     }
 
-
     public static function setWorkOutQuizSyncForThisExcersice(Workout $workout, Quiz $quiz): ?array
     {
-
         if ($workout->WorkOutQuiz->count() > 0) {
             return [];
         }
 
+        $n = (int) ($quiz->random_question ?? 0);
 
-        foreach ($quiz->Questions as $question) {
+        if ($n > 0) {
+            // Prefer global bank when random_question is set
+            $questions = Question::inRandomOrder()->limit($n)->get();
+        } else {
+            // Use attached questions when not random
+            $questions = $quiz->Questions; // attached questions
+            if ((int)($quiz->is_shuffle ?? 0) === 1) {
+                $questions = $questions instanceof \Illuminate\Support\Collection ? $questions->shuffle()->values() : collect($questions)->shuffle()->values();
+            } else {
+                if ($questions instanceof \Illuminate\Support\Collection) {
+                    $questions = $questions->sortBy(function($q){ return optional($q->pivot)->order ?? 0; })->values();
+                }
+            }
+        }
+
+        foreach ($questions as $question) {
             WorkoutQuizLog::create([
                 'workout_id' => $workout->id,
                 'quiz_id' => $quiz->id,
-                'question_id' => $question->id
+                'question_id' => $question->id,
             ]);
         }
 
@@ -63,12 +69,12 @@ abstract class WorkoutService
     }
 
     /**
-     * Recompute workout score and completion flags from logs.
+     * Recompute workout score and mark completion.
      */
     public static function recomputeScore(Workout $workout): int
     {
-        $workoutQuiz = $workout->WorkOutQuiz;
-        if (!$workoutQuiz || $workoutQuiz->count() === 0) {
+        $logs = $workout->WorkOutQuiz;
+        if (!$logs || $logs->count() === 0) {
             $workout->update([
                 'score' => 0,
                 'is_completed' => false,
@@ -79,22 +85,15 @@ abstract class WorkoutService
         }
 
         $sumOfScore = 0;
-        $is_completed = true;
-        $is_mentor = false;
-        foreach ($workoutQuiz as $question) {
-            if ($is_mentor == false && $question->is_mentor) {
-                $is_completed = false;
-                $is_mentor = true;
-            }
-            $sumOfScore += (int)$question->score;
+        foreach ($logs as $log) {
+            $sumOfScore += (int) ($log->score ?? 0);
         }
-
-        $score = (int)($sumOfScore / max(1, count($workoutQuiz)));
+        $score = (int) ($sumOfScore / max(1, count($logs)));
 
         $workout->update([
             'score' => $score,
-            'is_completed' => $is_completed,
-            'is_mentor' => $is_mentor,
+            'is_completed' => true, // consider finished when logs exist
+            'is_mentor' => false,
             'date_get_score' => now(),
         ]);
 

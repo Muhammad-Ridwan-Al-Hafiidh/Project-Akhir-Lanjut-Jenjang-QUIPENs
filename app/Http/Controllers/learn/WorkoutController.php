@@ -50,7 +50,7 @@ class WorkoutController extends Controller
         return $task->Render($participant, $sessionable);
     }
 
-    public function completedAndNext(Workout $workout)
+    public function completedAndNext(Workout $workout, Request $request)
     {
         $hasLogs = $workout->WorkOutQuiz && $workout->WorkOutQuiz->count() > 0;
         if ($hasLogs) {
@@ -61,6 +61,12 @@ class WorkoutController extends Controller
         $participantId = $workout->participant_id ?? optional($workout->Participant)->id;
         $currentSessionable = $workout->Sessionable;
         $sessionId = optional($workout->Session)->id ?? optional($currentSessionable)->session_id;
+
+        // stay on review if requested
+        if ($request->query('stay') === 'review' && $participantId && $currentSessionable) {
+            return redirect()->route('taskLearner', ['participant' => $participantId, 'sessionable' => $currentSessionable->id]);
+        }
+
         if ($sessionId && $currentSessionable) {
             $currentOrder = $currentSessionable->order ?? null;
             $next = Sessionable::where('session_id', $sessionId)

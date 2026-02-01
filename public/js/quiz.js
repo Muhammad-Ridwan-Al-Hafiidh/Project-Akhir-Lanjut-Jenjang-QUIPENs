@@ -1,4 +1,4 @@
-﻿$(document).ready(function () {
+$(document).ready(function () {
     $("#btnQuestions .btnQuestion").removeClass("process-step-active");
     if (style == "StepByStep") {
         StepByStep();
@@ -71,7 +71,7 @@ function saveAndClose() {
             requests.push($.post(url, $form.serialize()));
         }
     });
-    $.when.apply($, requests).then(function(){ window.location.reload(); });
+    $.when.apply($, requests).then(function(){ window.location.href = (typeof completedAndNextUrl !== 'undefined' ? completedAndNextUrl : window.location.href); });
 }
 
 // Intercept form submission to prevent navigating to JSON

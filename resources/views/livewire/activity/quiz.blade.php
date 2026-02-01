@@ -1,6 +1,6 @@
 <div id="btnQuestions" class="d-flex justify-content-center">
         
-    @forelse ($activity->Questions as $question)
+    @forelse ($questions as $question)
             
     <div class="">
         <button id="btnQuestion-{{ $question->id }}" onclick="showQuestion('{{ $question->id }}')" class="process-step btnQuestion">
@@ -10,6 +10,7 @@
     
     
     @empty  
+    <div class="text-muted small">No questions available.</div>
     @endforelse
 
 

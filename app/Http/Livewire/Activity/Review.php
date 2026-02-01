@@ -12,35 +12,43 @@ class Review extends Component
 {
     public $activity;
     public Participant $participant;
-
     public Workout $workout;
     public string $questionsRender = '';
 
     private function getQuestion(Question $question)
     {
-        return
-            (string)QuestionFactory::Build($question->QuestionType)
-                ->ReviewChecker($question, $this->workout);
+        return (string) QuestionFactory::Build($question->QuestionType)
+            ->ReviewChecker($question, $this->workout);
     }
-
 
     /**
      * render
      *
-     * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\View\Factory
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\View\Factory|null
      */
     public function render()
     {
+        $this->questionsRender = '';
 
-        if (empty($this->activity->Questions()))
-            return null;
-
-        foreach ($this->activity->Questions as $question) {
-            $this->questionsRender .= $this->getQuestion($question);
+        // Prefer workout-selected questions (random or attached)
+        if ($this->workout && $this->workout->WorkOutQuiz && $this->workout->WorkOutQuiz->count() > 0) {
+            foreach ($this->workout->WorkOutQuiz as $log) {
+                $q = Question::find($log->question_id);
+                if ($q) {
+                    $this->questionsRender .= $this->getQuestion($q);
+                }
+            }
+        } else {
+            // Fallback to quiz-attached questions
+            if (!empty($this->activity->Questions())) {
+                foreach ($this->activity->Questions as $question) {
+                    $this->questionsRender .= $this->getQuestion($question);
+                }
+            }
         }
 
         return view('livewire.activity.review', [
-            'questionsRender' => $this->questionsRender
+            'questionsRender' => $this->questionsRender,
         ]);
     }
 }

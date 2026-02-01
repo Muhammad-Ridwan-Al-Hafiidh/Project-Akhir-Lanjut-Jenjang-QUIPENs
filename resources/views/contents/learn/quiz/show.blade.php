@@ -58,5 +58,7 @@
     <script src="{{ URL::to('/js/record/src/recorder.js') }}"></script>
     <script src="{{ URL::to('/js/record/src/mp3Worker.js') }}"></script>
     <script src="{{ URL::to('/js/record/js/app.js') }}"></script>
-    @endsection
+        <script>
+        let completedAndNextUrl = "{{ route('completedAndNext', ['workout' => $workout->id]) }}";
+    </script>@endsection
 {{-- injected by copilot restart header button --}}

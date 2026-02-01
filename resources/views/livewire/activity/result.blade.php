@@ -1,4 +1,3 @@
-
 <div class="row">
 
     <!-- Earnings (Monthly) Card Example -->
@@ -33,7 +32,7 @@
                             @lang("question count")</div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
 
-                            {{ $activity->Questions->count() }}
+                            {{ (int) ((($activity->random_question ?? 0) > 0) ? ($workout->WorkOutQuiz->count() ?? 0) : $activity->Questions->count()) }}
 
                         </div>
                     </div>
