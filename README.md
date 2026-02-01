@@ -6,11 +6,7 @@
 ## _Learning every thing with fun and game_
 
   
-**What is Laramint?**
-
-
-## NB: our platform is under the development process and will be completed ASAP.*
-
+**Quipenz?**
 
   
 # Getting started
