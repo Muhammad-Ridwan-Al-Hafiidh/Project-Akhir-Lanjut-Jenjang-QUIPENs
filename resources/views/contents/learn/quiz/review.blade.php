@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 
 @section("content")
@@ -71,7 +71,28 @@
                 ])
             </div>
 
-            <div class="card-footer text-center">
+                @include('contents.learn.quiz._dda_card')
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card shadow-sm border-left-secondary">
+                        <div class="card-body py-2">
+                            <div class="small text-muted mb-2">Restart History (DDA)</div>
+                            @if(optional($workout->RestartLogs)->count() > 0)
+                                <ul class="list-unstyled mb-0">
+                                    @foreach($workout->RestartLogs()->latest()->limit(5)->get() as $log)
+                                        <li class="mb-2">
+                                            <strong>{{ $log->created_at->format("Y-m-d H:i") }}</strong>  difficulty: <em>{{ $log->dda_difficulty ?? 'n/a' }}</em>, previous score: <strong>{{ $log->previous_score }}</strong>, payload items: {{ is_array($log->payload) ? count($log->payload) : 0 }}
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <div class="text-muted small">No restart history.</div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+<div class="card-footer text-center">
                 <form method="post" class="d-inline" action="{{ route('quizRestart', $workout->id) }}" onsubmit="return confirm('Restart this quiz? This will clear previous answers.')">
                     @csrf
                     <button class="btn btn-warning" id="restartQuiz">
@@ -90,3 +111,6 @@
         </div>
     </div>
     @endsection
+
+
+

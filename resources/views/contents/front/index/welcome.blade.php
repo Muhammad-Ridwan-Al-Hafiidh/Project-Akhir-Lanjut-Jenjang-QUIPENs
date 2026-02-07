@@ -9,7 +9,7 @@
         <div class="row g-5 align-items-end">
             <div class="col-lg-6 text-center text-lg-start">
                 <h1 class="text-white mb-4 animated slideInDown">The free, fun, and effective way to learn English language!</h1>
-                <p class="text-white pb-3 animated slideInDown">Learning with Laramint is fun, and research shows that it works! With quick, bite-sized lessons, you’ll earn points and unlock new levels while gaining real-world communication skills.</p>
+                <p class="text-white pb-3 animated slideInDown">Learning with Quipenz is fun, and research shows that it works! With quick, bite-sized lessons, you’ll earn points and unlock new levels while gaining real-world communication skills.</p>
                 <a href="" class="btn btn-secondary py-sm-3 px-sm-5 rounded-pill me-3 animated slideInLeft">Read More</a>
                 <a href="{{ route('front.courses') }}" class="btn btn-light py-sm-3 px-sm-5 rounded-pill animated slideInRight">Courses</a>
             </div>
@@ -41,9 +41,9 @@
     <div class="container py-5 px-lg-5">
         <div class="row g-5 align-items-center">
             <div class="col-lg-6 wow fadeInUp" data-wow-delay="0.1s">
-                <p class="section-title text-secondary">laramint<span></span></p>
-                <h1 class="mb-5">What's laramint</h1>
-                
+                <p class="section-title text-secondary">Quipenz<span></span></p>
+                <h1 class="mb-5">What's Quipenz</h1>
+
                 <div class="skill mb-4">
                     <div class="d-flex justify-content-between">
                         <p class="mb-2">Thousands of video examples of language used in real life</p>
@@ -118,8 +118,8 @@
 <div class="container-xxl py-5">
     <div class="container py-5 px-lg-5">
         <div class="wow fadeInUp" data-wow-delay="0.1s">
-            <p class="section-title text-secondary justify-content-center"><span></span>Why Laramint<span></span></p>
-            <h1 class="text-center mb-5">Why you’ll love learning with Laramint</h1>
+            <p class="section-title text-secondary justify-content-center"><span></span>Why Quipenz<span></span></p>
+            <h1 class="text-center mb-5">Why you’ll love learning with Quipenz</h1>
         </div>
         <div class="row g-4">
             <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
@@ -162,7 +162,7 @@
                     <a class="btn btn-square" href=""><i class="fa fa-arrow-right"></i></a>
                 </div>
             </div>
-            
+
         </div>
     </div>
 </div>

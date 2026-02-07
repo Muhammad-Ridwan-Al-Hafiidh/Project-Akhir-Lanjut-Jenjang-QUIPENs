@@ -7,6 +7,7 @@ use App\Models\Participant;
 use App\Models\Question;
 use App\Models\Sessionable;
 use App\Models\Workout;
+use App\Models\WorkoutRestartLog;
 use App\Utility\Modules\Tasks\TaskFactory;
 use App\Utility\Question\QuestionFactory;
 use App\Utility\Workout\WorkoutService;
@@ -15,8 +16,28 @@ use Illuminate\Support\Facades\Auth;
 
 class WorkoutController extends Controller
 {
-    public function restart(Workout $workout)
+    public function restart(Request $request, Workout $workout)
     {
+        $previousScore = $workout->score ?? 0;
+        $sessionLogs = [];
+        try {
+            $sessionLogs = $workout->WorkOutQuiz()->get()->toArray();
+        } catch (\Throwable $e) { }
+
+        $difficulty = $request->input('dda_difficulty');
+
+        try {
+            if (class_exists(WorkoutRestartLog::class)) {
+                WorkoutRestartLog::create([
+                    'workout_id' => $workout->id,
+                    'user_id' => Auth::id(),
+                    'previous_score' => $previousScore,
+                    'dda_difficulty' => $difficulty,
+                    'payload' => $sessionLogs,
+                ]);
+            }
+        } catch (\Throwable $e) { }
+
         try { $workout->WorkOutQuiz()->delete(); } catch (\Throwable $e) { }
         $workout->update([
             'is_completed' => 0,
@@ -24,9 +45,10 @@ class WorkoutController extends Controller
             'score' => 0,
             'date_get_score' => null,
         ]);
+
         $sessionable = $workout->Sessionable;
         if ($sessionable && method_exists(WorkoutService::class, 'setWorkOutQuizSyncForThisExcersice')) {
-            WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model);
+            WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model, $difficulty);
         }
         $participantId = $workout->participant_id ?? optional($workout->Participant)->id;
         $sessionableId = $workout->sessionable_id ?? optional($workout->Sessionable)->id;
@@ -92,3 +114,4 @@ class WorkoutController extends Controller
         return response()->json($result);
     }
 }
+

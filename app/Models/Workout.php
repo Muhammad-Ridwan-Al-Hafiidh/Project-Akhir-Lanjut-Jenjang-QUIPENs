@@ -51,4 +51,10 @@ class Workout extends Model
     {
         return $this->hasOne(Participant::class);
     }
+
+    public function RestartLogs(): HasMany
+    {
+        return $this->hasMany(WorkoutRestartLog::class);
+    }
 }
+

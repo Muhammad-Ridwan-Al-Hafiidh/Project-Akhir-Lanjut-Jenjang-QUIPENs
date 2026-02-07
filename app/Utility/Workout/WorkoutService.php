@@ -34,7 +34,7 @@ abstract class WorkoutService
         return $workout;
     }
 
-    public static function setWorkOutQuizSyncForThisExcersice(Workout $workout, Quiz $quiz): ?array
+    public static function setWorkOutQuizSyncForThisExcersice(Workout $workout, Quiz $quiz, ?string $difficulty = null): ?array
     {
         if ($workout->WorkOutQuiz->count() > 0) {
             return [];
@@ -44,10 +44,27 @@ abstract class WorkoutService
 
         if ($n > 0) {
             // Prefer global bank when random_question is set
-            $questions = Question::inRandomOrder()->limit($n)->get();
+            $query = Question::query();
+            if ($difficulty) {
+                $query->where('difficulty', $difficulty);
+            }
+            $questions = $query->inRandomOrder()->limit($n)->get();
         } else {
             // Use attached questions when not random
             $questions = $quiz->Questions; // attached questions
+
+            // If difficulty filter requested, try to filter attached questions
+            if ($difficulty) {
+                $filtered = collect($questions)->filter(function ($q) use ($difficulty) {
+                    return isset($q->difficulty) ? ($q->difficulty == $difficulty) : false;
+                })->values();
+
+                if ($filtered->count() > 0) {
+                    $questions = $filtered;
+                }
+                // if filtered is empty, keep original attached questions as fallback
+            }
+
             if ((int)($quiz->is_shuffle ?? 0) === 1) {
                 $questions = $questions instanceof \Illuminate\Support\Collection ? $questions->shuffle()->values() : collect($questions)->shuffle()->values();
             } else {
