@@ -8,8 +8,8 @@
     <div class="container px-lg-5">
         <div class="row g-5 align-items-end">
             <div class="col-lg-6 text-center text-lg-start">
-                <h1 class="text-white mb-4 animated slideInDown">The free, fun, and effective way to learn English language!</h1>
-                <p class="text-white pb-3 animated slideInDown">Learning with Quipenz is fun, and research shows that it works! With quick, bite-sized lessons, you’ll earn points and unlock new levels while gaining real-world communication skills.</p>
+                <h1 class="text-white mb-4 animated slideInDown">The free, fun, and effective way to learning and Gaming in one way</h1>
+                <p class="text-white pb-3 animated slideInDown">Learning with Quipenz is fun, and research shows that it works! With quick, bite-sized lessons, you’ll earn points and unlock new levels based on your performance.</p>
                 <a href="" class="btn btn-secondary py-sm-3 px-sm-5 rounded-pill me-3 animated slideInLeft">Read More</a>
                 <a href="{{ route('front.courses') }}" class="btn btn-light py-sm-3 px-sm-5 rounded-pill animated slideInRight">Courses</a>
             </div>
@@ -64,7 +64,7 @@
                 </div>
                 <div class="skill mb-4">
                     <div class="d-flex justify-content-between">
-                        <p class="mb-2">Gamified tests that train your language skills</p>
+                        <p class="mb-2">Gamified tests based on your taste</p>
                         <p class="mb-2">95%</p>
                     </div>
                     <div class="progress">
@@ -80,7 +80,7 @@
     </div>
 </div>
 
-
+{{--
 <!-- About End -->
 
 
@@ -111,7 +111,7 @@
         </div>
     </div>
 </div>
-<!-- Facts End -->
+<!-- Facts End --> --}}
 
 
 <!-- Service Start -->
@@ -167,7 +167,7 @@
     </div>
 </div>
 <!-- Service End -->
-
+{{--
 
 <!-- Newsletter Start -->
 <div class="container-xxl bg-primary newsletter py-5 wow fadeInUp" data-wow-delay="0.1s">
@@ -185,9 +185,9 @@
         </div>
     </div>
 </div>
-<!-- Newsletter End -->
+<!-- Newsletter End --> --}}
 
-
+{{--
 <!-- Projects Start -->
 <div class="container-xxl py-5">
     <div class="container py-5 px-lg-5">
@@ -224,10 +224,10 @@
         </div>
     </div>
 </div>
-<!-- Projects End -->
+<!-- Projects End --> --}}
 
 
-<!-- Testimonial Start -->
+{{-- <!-- Testimonial Start -->
 <div class="container-xxl py-5 wow fadeInUp" data-wow-delay="0.1s">
     <div class="container py-5 px-lg-5">
         <p class="section-title text-secondary justify-content-center"><span></span>Testimonial<span></span></p>
@@ -266,7 +266,7 @@
         </div>
     </div>
 </div>
-<!-- Testimonial End -->
+<!-- Testimonial End --> --}}
 
 
 <!-- Team Start -->
@@ -276,43 +276,13 @@
             <p class="section-title text-secondary justify-content-center"><span></span>Our Team<span></span></p>
             <h1 class="text-center mb-5">Our Team Members</h1>
         </div>
-        <div class="row g-4">
-            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
-                <div class="team-item bg-light rounded">
-                    <div class="text-center border-bottom p-4">
-                        <img class="img-fluid rounded-circle mb-4" src="front/img/team-1.jpg" alt="">
-                        <h5>John Doe</h5>
-                        <span>Adults Supervisor</span>
-                    </div>
-                    <div class="d-flex justify-content-center p-4">
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-facebook-f"></i></a>
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-twitter"></i></a>
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-instagram"></i></a>
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
-                <div class="team-item bg-light rounded">
-                    <div class="text-center border-bottom p-4">
-                        <img class="img-fluid rounded-circle mb-4" src="front/img/team-2.jpg" alt="">
-                        <h5>Jessica Brown</h5>
-                        <span>Kids Supervisior</span>
-                    </div>
-                    <div class="d-flex justify-content-center p-4">
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-facebook-f"></i></a>
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-twitter"></i></a>
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-instagram"></i></a>
-                        <a class="btn btn-square mx-1" href=""><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-            </div>
+        <div class="row g-4 justify-content-center">
             <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.5s">
                 <div class="team-item bg-light rounded">
                     <div class="text-center border-bottom p-4">
-                        <img class="img-fluid rounded-circle mb-4" src="front/img/team-3.jpg" alt="">
-                        <h5>Tony Johnson</h5>
-                        <span>Ielts Trainer</span>
+                        <img class="img-fluid rounded-circle mb-4" src="front/img/" alt="">
+                        <h5>Muhammad Ridwan Al Hafiidh</h5>
+                        <span>Lulusan D3 Teknik Informatika</span>
                     </div>
                     <div class="d-flex justify-content-center p-4">
                         <a class="btn btn-square mx-1" href=""><i class="fab fa-facebook-f"></i></a>

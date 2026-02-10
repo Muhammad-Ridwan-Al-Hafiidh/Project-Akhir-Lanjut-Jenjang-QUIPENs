@@ -14,7 +14,7 @@ class Comments extends Component
 
     public int $activable_id;
     public string $activable_type;
-    public int $userId;
+    public ?int $userId = null;
 
 
     /**

@@ -70,11 +70,13 @@
                 'workout' => $workout
                 ])
             </div>
-
+            <div class="px-10 mx-md-5">
                 @include('contents.learn.quiz._dda_card')
+            </div>
+
             <div class="row mb-3">
                 <div class="col-12">
-                    <div class="card shadow-sm border-left-secondary">
+                    <div class="card shadow-sm border-left-secondary px-10 mx-3 mx-md-5">
                         <div class="card-body py-2">
                             <div class="small text-muted mb-2">Restart History (DDA)</div>
                             @if(optional($workout->RestartLogs)->count() > 0)
@@ -92,7 +94,7 @@
                     </div>
                 </div>
             </div>
-<div class="card-footer text-center">
+    {{-- <div class="card-footer text-center px-10">
                 <form method="post" class="d-inline" action="{{ route('quizRestart', $workout->id) }}" onsubmit="return confirm('Restart this quiz? This will clear previous answers.')">
                     @csrf
                     <button class="btn btn-warning" id="restartQuiz">
@@ -102,7 +104,7 @@
             </div>
 
         </div>
-    </div>
+    </div> --}}
 
     <div class="d-none">
         <div id="dialog-confirm" title="Save And Close?">

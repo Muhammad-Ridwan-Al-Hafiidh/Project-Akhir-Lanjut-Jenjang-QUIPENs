@@ -25,7 +25,7 @@ class ParticipantInfoGenerator
 
         $lastTerm = $terms->sortByDesc('created_at')->first();
         return $lastTerm;
-        
+
     }
 
     /**
@@ -64,7 +64,9 @@ class ParticipantInfoGenerator
             $term->Term->task_done = $term->Workout->where('is_completed', '1')->count();
         }
 
-        $terms->is_mentor = $is_mentor;
+        $terms->each(function($term) use ($is_mentor) {
+            $term->is_mentor = $is_mentor;
+        });
         return $terms;
     }
 

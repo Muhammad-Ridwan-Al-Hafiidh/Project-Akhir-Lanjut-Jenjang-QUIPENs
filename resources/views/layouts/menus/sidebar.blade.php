@@ -6,7 +6,7 @@
         <div class="sidebar-brand-icon rotate-n-15">
             <i class="fas fa-laugh-wink"></i>
         </div>
-        <div class="sidebar-brand-text mx-3">Mint <sup>V 0.01</sup></div>
+        <div class="sidebar-brand-text mx-3">QuiPenz <sup>V Beta</sup></div>
     </a>
 
     <!-- Divider -->
@@ -51,7 +51,7 @@
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#MentorsCollapse" aria-expanded="true" aria-controls="ACLCollapse">
             <i class="fas fa-fw fa-clipboard"></i>
-            <span>Learners</span>
+            <span>Mahasiswa</span>
         </a>
         <div id="MentorsCollapse" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
@@ -83,7 +83,7 @@
 
     @role('Super-Admin')
 
-    <div class="sidebar-heading">
+    {{-- <div class="sidebar-heading">
         {{ __('Financial') }}
     </div>
     <li class="nav-item">
@@ -97,7 +97,7 @@
 
             </div>
         </div>
-    </li>
+    </li> --}}
 
 
     <div class="sidebar-heading">
@@ -107,7 +107,7 @@
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#ACLCollapse" aria-expanded="true" aria-controls="ACLCollapse">
             <i class="fas fa-fw fa-users-cog"></i>
-            <span>ACL</span>
+            <span>Akun Manajemen</span>
         </a>
         <div id="ACLCollapse" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">

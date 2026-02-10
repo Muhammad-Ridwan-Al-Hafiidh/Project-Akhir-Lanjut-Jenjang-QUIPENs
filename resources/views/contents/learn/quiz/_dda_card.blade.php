@@ -1,7 +1,7 @@
-﻿<div class="row mb-3">
+﻿<div class="row mb-3 px-10">
     <div class="col-12">
         <div class="card shadow-sm border-bottom-primary">
-            <div class="card-body py-2">
+            <div class="card-body py-2 px-10">
                 <div class="small text-muted mb-2">Dynamic Difficulty Adjustment</div>
                 <div id="dda-card" class="d-flex align-items-center justify-content-between" style="gap:16px;">
                     <div>
