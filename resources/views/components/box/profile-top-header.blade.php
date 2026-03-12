@@ -1,29 +1,25 @@
-<div class="row">
-
-    <div class="col-4">
+﻿<div class="row">
+    {{-- Profile Box - Full Width --}}
+    <div class="col-12 mb-3">
         <x-box.profile-box :user="$user"/>
     </div>
 
-    <div class="col-8">
-
-        <div class="card shadow mb-4 border-bottom-danger">
-            <!-- Card Header - Dropdown -->
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold ">
-                    <i class="fa fa-comment"></i>
+    {{-- Messages & Alerts - Full Width --}}
+    <div class="col-12">
+        <div class="card shadow-sm border-left-danger">
+            <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between">
+                <h6 class="m-0 text-muted">
+                    <i class="fa fa-comment me-2"></i>
                     {{ __('Messages & Alerts') }}
-
                 </h6>
             </div>
-            <!-- Card Body -->
             <div class="card-body">
                 @livewire('services.mentors.comments',[
-                'activable_id' => $activable_id,
-                'activable_type' => $activable_type,
-                'userId' => $user->id
+                    'activable_id' => $activable_id,
+                    'activable_type' => $activable_type,
+                    'userId' => $user->id
                 ])
             </div>
         </div>
-
     </div>
 </div>

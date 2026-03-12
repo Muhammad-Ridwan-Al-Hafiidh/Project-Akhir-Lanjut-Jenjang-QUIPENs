@@ -14,6 +14,7 @@ class Render extends Component
     public ?Question $question = null;
     public $quiz = null;
     public string $difficulty = 'medium';
+    public string $topic = '';
 
     public function mount(): void
     {
@@ -26,6 +27,7 @@ class Render extends Component
         if (!empty($this->question)) {
             $this->questionTypeId = $this->question->question_type_id;
             $this->difficulty = $this->question->difficulty ?? 'medium';
+            $this->topic = $this->question->topic ?? '';
             $this->getComponent($this->questionTypeId);
         }
     }

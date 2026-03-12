@@ -1,118 +1,300 @@
 ﻿@extends('layouts.admin')
 
-
 @section("content")
 
 @can('mentor.list')
-
 @include('contents.learn.mentor.mentor-workout')
-
 @endcan
 
-<div class="row">
-
-    <div class="col-12">
-        <div class="card shadow mb-4 border-bottom-primary">
-            <!-- Card Header - Dropdown -->
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">{{ $activity->title }}</h6>
-
-                <div class="d-flex align-items-center" style="gap:8px;">
-
-                    <div class="dropdown no-arrow">
-                        <x-BackButton />
-                    </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                {{-- Card Header --}}
+                <div class="card-header py-3 d-flex align-items-center justify-content-between bg-gradient-primary text-white">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-clipboard-check me-2"></i> {{ $activity->title }}
+                    </h5>
+                    <x-BackButton />
                 </div>
-            </div>
-            <!-- Card Body -->
+
+                <div class="card-body">
+                    {{-- Score & Stats Section --}}
+                    <div class="row g-3 mb-4">
+                        {{-- Score Card --}}
+                        <div class="col-12 col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="small text-muted text-uppercase mb-2">{{ __("Your Score") }}</div>
+                                    @php
+                                        $score = (int)($workout->score ?? 0);
+                                        $scoreColor = $score >= 80 ? 'success' : ($score >= 60 ? 'info' : ($score >= 40 ? 'warning' : 'danger'));
+                                    @endphp
+                                    <div class="display-4 font-weight-bold text-{{ $scoreColor }} mb-2">{{ $score }}</div>
+                                    <div class="progress" style="height: 10px;">
+                                        <div class="progress-bar bg-{{ $scoreColor }}" role="progressbar" style="width: {{ $score }}%"></div>
+                                    </div>
+                                    <div class="mt-2">
+                                        @if($score >= 80)
+                                            <span class="badge bg-success"><i class="fa fa-star"></i> Excellent</span>
+                                        @elseif($score >= 60)
+                                            <span class="badge bg-info"><i class="fa fa-thumbs-up"></i> Good</span>
+                                        @elseif($score >= 40)
+                                            <span class="badge bg-warning text-dark"><i class="fa fa-exclamation"></i> Need Improvement</span>
+                                        @else
+                                            <span class="badge bg-danger"><i class="fa fa-times"></i> Keep Practicing</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Quiz Settings Cards --}}
+                        <div class="col-12 col-md-8">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-light py-2">
+                                    <h6 class="m-0 text-muted"><i class="fas fa-cog me-2"></i> Quiz Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="border rounded p-3">
+                                                <div class="h3 mb-0 text-primary">{{ (int)($activity->random_question ?? 0) }}</div>
+                                                <div class="small text-muted">Random Questions</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="border rounded p-3">
+                                                <div class="h3 mb-0 text-info">{{ (int)($activity->questions->count() ?? 0) }}</div>
+                                                <div class="small text-muted">Total Questions</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="border rounded p-3">
+                                                @if((int)($activity->is_shuffle ?? 0) === 1)
+                                                    <div class="h3 mb-0 text-success"><i class="fa fa-check-circle"></i></div>
+                                                @else
+                                                    <div class="h3 mb-0 text-secondary"><i class="fa fa-times-circle"></i></div>
+                                                @endif
+                                                <div class="small text-muted">Shuffle</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Difficulty Legend --}}
+                    <div class="alert alert-light border mb-4">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        <strong>Difficulty Legend:</strong>
+                        <span class="badge bg-success ms-2">Easy = 1</span>
+                        <span class="badge bg-warning text-dark ms-1">Medium = 2</span>
+                        <span class="badge bg-danger ms-1">Hard = 3</span>
+                    </div>
+
+                    {{-- Questions & Answers (Livewire) --}}
+                    <div class="mb-4">
+                        @livewire('activity.result', [
+                            'activity' => $activity,
+                            'participant' => $participant,
+                            'workout' => $workout
+                        ])
+                    </div>
+
+                    {{-- DDA Card --}}
+                    <div class="mb-4">
+                        @include('contents.learn.quiz._dda_card')
+                    </div>
+
+                    {{-- DDA Analysis Panel --}}
+                    <div class="card shadow-sm border-left-info mb-4">
+                        <div class="card-header bg-gradient-info text-white py-2">
+                            <h6 class="m-0"><i class="fas fa-chart-line me-2"></i> DDA Analysis</h6>
+                        </div>
                         <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="card shadow-sm border-bottom-primary">
-                            <div class="card-body py-2 d-flex align-items-center justify-content-between">
-                                <div class="text-muted">{{ __("Score") }}</div>
-                                <div class="h5 m-0">{{ (int)($workout->score ?? 0) }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>                <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="card shadow-sm border-bottom-info">
-                            <div class="card-body py-2">
-                                <div class="small text-muted mb-2">Quiz Settings</div>
-                                <div class="d-flex flex-wrap" style="gap: 16px;">
-                                    <div><strong>Random Questions:</strong> {{ (int)($activity->random_question ?? 0) }}</div>
-                                    <div><strong>Shuffle:</strong> {{ (int)($activity->is_shuffle ?? 0) === 1 ? 'Yes' : 'No' }}</div>
-                                    <div><strong>Selected (this workout):</strong> {{ (int)($activity->questions->count() ?? 0) }}</div>
+                            <div id="dda-analysis">
+                                <div id="dda-loading" class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                                    <span class="text-muted">Loading analysis...</span>
                                 </div>
+                                <div id="dda-error" class="alert alert-danger d-none"></div>
+                                <div id="dda-summary"></div>
+                                <div id="dda-graphs" class="row g-3"></div>
                             </div>
                         </div>
                     </div>
-                </div>
-                @php($weights = ['easy' => 1, 'medium' => 2, 'hard' => 3])
-                <div class="row mb-3">
 
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="card shadow-sm border-bottom-success">
-                            <div class="card-body py-2">
-                                <div class="small text-muted mb-2">Difficulty Mean & Conclusion</div>
-                                <div class="d-flex flex-wrap" style="gap: 16px;">
-                                    <div><strong>Legend:</strong> easy=1, medium=2, hard=3</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>@livewire('activity.result', [
-                'activity' => $activity,
-                'participant' => $participant,
-                'workout' => $workout
-                ])
-            </div>
-            <div class="px-10 mx-md-5">
-                @include('contents.learn.quiz._dda_card')
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-12">
-                    <div class="card shadow-sm border-left-secondary px-10 mx-3 mx-md-5">
-                        <div class="card-body py-2">
-                            <div class="small text-muted mb-2">Restart History (DDA)</div>
+                    {{-- Restart History --}}
+                    <div class="card shadow-sm border-left-secondary mb-4">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 text-muted"><i class="fas fa-history me-2"></i> Restart History (DDA)</h6>
                             @if(optional($workout->RestartLogs)->count() > 0)
-                                <ul class="list-unstyled mb-0">
-                                    @foreach($workout->RestartLogs()->latest()->limit(5)->get() as $log)
-                                        <li class="mb-2">
-                                            <strong>{{ $log->created_at->format("Y-m-d H:i") }}</strong>  difficulty: <em>{{ $log->dda_difficulty ?? 'n/a' }}</em>, previous score: <strong>{{ $log->previous_score }}</strong>, payload items: {{ is_array($log->payload) ? count($log->payload) : 0 }}
-                                        </li>
-                                    @endforeach
-                                </ul>
+                                <span class="badge bg-secondary">{{ $workout->RestartLogs()->count() }} records</span>
+                            @endif
+                        </div>
+                        <div class="card-body p-0">
+                            @if(optional($workout->RestartLogs)->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-3">#</th>
+                                                <th>Date/Time</th>
+                                                <th>Difficulty</th>
+                                                <th>Previous Score</th>
+                                                <th>Payload Items</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($workout->RestartLogs()->latest()->limit(5)->get() as $idx => $log)
+                                                <tr>
+                                                    <td class="ps-3">{{ $idx + 1 }}</td>
+                                                    <td>
+                                                        <i class="far fa-clock text-muted me-1"></i>
+                                                        {{ $log->created_at->format("d M Y, H:i") }}
+                                                    </td>
+                                                    <td>
+                                                        @php
+                                                            $diff = $log->dda_difficulty ?? null;
+                                                            if($diff) {
+                                                                $diffColor = $diff === 'easy' ? 'success' : ($diff === 'medium' ? 'warning' : ($diff === 'hard' ? 'danger' : 'secondary'));
+                                                                $diffLabel = ucfirst($diff);
+                                                            } else {
+                                                                $diffColor = 'secondary';
+                                                                $diffLabel = 'No DDA';
+                                                            }
+                                                        @endphp
+                                                        <span class="badge bg-{{ $diffColor }}">{{ $diffLabel }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <strong>{{ $log->previous_score ?? '-' }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark">{{ is_array($log->payload) ? count($log->payload) : 0 }} items</span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             @else
-                                <div class="text-muted small">No restart history.</div>
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 text-secondary"></i>
+                                    <p class="mb-0">No restart history available.</p>
+                                </div>
                             @endif
                         </div>
                     </div>
                 </div>
-            </div>
-    {{-- <div class="card-footer text-center px-10">
-                <form method="post" class="d-inline" action="{{ route('quizRestart', $workout->id) }}" onsubmit="return confirm('Restart this quiz? This will clear previous answers.')">
-                    @csrf
-                    <button class="btn btn-warning" id="restartQuiz">
-                        <i class="fa fa-redo"></i> {{ __("Restart") }}
-                    </button>
-                </form>
-            </div>
 
-        </div>
-    </div> --}}
-
-    <div class="d-none">
-        <div id="dialog-confirm" title="Save And Close?">
-            <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>
-                These items will be permanently close and cannot be recovered. Are you sure?</p>
+                {{-- Card Footer with Restart Button --}}
+                <div class="card-footer bg-light text-center py-3">
+                    <form method="post" class="d-inline" action="{{ route('quizRestart', $workout->id) }}" onsubmit="return confirm('Restart this quiz? This will clear previous answers.')">
+                        @csrf
+                        
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-    @endsection
+</div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const restartLogs = {!! json_encode(
+        (isset($workout) && $workout->RestartLogs()->count() > 0)
+            ? $workout->RestartLogs()->latest()->limit(50)->get()->map(function($l){
+                $p = is_array($l->payload) ? $l->payload : (is_string($l->payload) ? json_decode($l->payload, true) : []);
+                return [
+                    'created_at' => optional($l->created_at)->toDateTimeString() ?: now()->toDateTimeString(),
+                    'dda_difficulty' => $l->dda_difficulty,
+                    'previous_score' => $l->previous_score !== null ? (float)$l->previous_score : null,
+                    'payload' => is_array($p) ? $p : [],
+                    'used_dda' => $l->used_dda ?? true,
+                ];
+            })->toArray()
+            : []
+    ) !!};
 
+    if(!restartLogs || restartLogs.length === 0){
+        document.getElementById('dda-loading').innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-1"></i> No restart logs to analyze.</div>';
+        return;
+    }
 
+    const payload = {
+        workout_id: {{ $workout->id ?? 'null' }},
+        restart_logs: restartLogs
+    };
+
+    fetch('http://127.0.0.1:8001/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(res => {
+        if(!res.ok) throw new Error('Server returned ' + res.status);
+        return res.json();
+    }).then(data => {
+        document.getElementById('dda-loading').classList.add('d-none');
+        const summary = data.summary || {};
+        const graphs = data.graphs || {};
+
+        const sumEl = document.getElementById('dda-summary');
+        let html = '<div class="row g-2 mb-3">';
+        Object.keys(summary).forEach(k => {
+            let v = summary[k];
+            try { v = (typeof v === 'object') ? JSON.stringify(v) : v; } catch(e){}
+            html += '<div class="col-6 col-md-3"><div class="border rounded p-2 text-center bg-light"><div class="small text-muted">' + k.replace(/_/g, ' ') + '</div><div class="fw-bold">' + v + '</div></div></div>';
+        });
+        html += '</div>';
+        sumEl.innerHTML = html;
+
+        const graphsEl = document.getElementById('dda-graphs');
+        Object.entries(graphs).forEach(([k, v]) => {
+            if(v){
+                const col = document.createElement('div');
+                col.className = 'col-12 col-md-6';
+                const card = document.createElement('div');
+                card.className = 'card h-100';
+                const header = document.createElement('div');
+                header.className = 'card-header py-2 bg-light';
+                header.innerHTML = '<small class="text-muted">' + k.replace(/_/g, ' ').toUpperCase() + '</small>';
+                const body = document.createElement('div');
+                body.className = 'card-body text-center p-2';
+                const img = document.createElement('img');
+                img.src = v;
+                img.alt = k;
+                img.className = 'img-fluid';
+                body.appendChild(img);
+                card.appendChild(header);
+                card.appendChild(body);
+                col.appendChild(card);
+                graphsEl.appendChild(col);
+            }
+        });
+    }).catch(err => {
+        document.getElementById('dda-loading').classList.add('d-none');
+        const errEl = document.getElementById('dda-error');
+        errEl.classList.remove('d-none');
+        errEl.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Analysis failed: ' + err.message;
+    });
+});
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+}
+.bg-gradient-info {
+    background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+.border-left-secondary {
+    border-left: 4px solid #858796 !important;
+}
+</style>
+
+@endsection
