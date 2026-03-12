@@ -66,7 +66,7 @@
                                         <div class="col-4">
                                             <div class="border rounded p-3">
                                                 <div class="h3 mb-0 text-info">{{ (int)($activity->questions->count() ?? 0) }}</div>
-                                                <div class="small text-muted">Total Questions</div>
+                                                <div class="small text-muted">Manual Questions</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
@@ -170,7 +170,7 @@
                                         </div>
                                         <div id="combined-error" class="alert alert-danger d-none"></div>
                                         <div id="combined-summary"></div>
-                                        <div id="combined-graphs" class="row g-3"></div>
+                                        <div id="combined-charts" class="row g-3"></div>
                                     </div>
                                 </div>
                             </div>
@@ -216,13 +216,20 @@
                                                     </td>
                                                     <td>
                                                         @php
-                                                            $diff = $log->dda_difficulty ?? null;
+                                                            $isDDA = $log->used_dda ?? true;
+                                                            $diff = $isDDA ? ($log->dda_difficulty ?? null) : ($log->non_dda_difficulty ?? null);
+
                                                             if($diff) {
-                                                                $diffColor = $diff === 'easy' ? 'success' : ($diff === 'medium' ? 'warning' : ($diff === 'hard' ? 'danger' : 'secondary'));
-                                                                $diffLabel = ucfirst($diff);
+                                                                if(strpos($diff, ',') !== false) {
+                                                                    $diffColor = 'info';
+                                                                    $diffLabel = $diff;
+                                                                } else {
+                                                                    $diffColor = $diff === 'easy' ? 'success' : ($diff === 'medium' ? 'warning' : ($diff === 'hard' ? 'danger' : 'secondary'));
+                                                                    $diffLabel = ucfirst($diff);
+                                                                }
                                                             } else {
                                                                 $diffColor = 'secondary';
-                                                                $diffLabel = 'No DDA';
+                                                                $diffLabel = $isDDA ? 'No Rec.' : 'Fixed';
                                                             }
                                                         @endphp
                                                         <span class="badge text-white bg-{{ $diffColor }}">{{ $diffLabel }}</span>
@@ -253,6 +260,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const allRestartLogs = {!! json_encode(
@@ -262,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return [
                     'created_at' => optional($l->created_at)->toDateTimeString() ?: now()->toDateTimeString(),
                     'dda_difficulty' => $l->dda_difficulty,
+                    'non_dda_difficulty' => $l->non_dda_difficulty,
                     'previous_score' => $l->previous_score !== null ? (float)$l->previous_score : null,
                     'payload' => is_array($p) ? $p : [],
                     'used_dda' => $l->used_dda ?? true,
@@ -273,10 +282,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const nonddalogs = allRestartLogs.filter(l => !l.used_dda);
     const ddalogs = allRestartLogs.filter(l => l.used_dda);
 
+    let nondda_data = null;
+    let dda_data = null;
+
     function loadAnalysis(logs, prefix) {
         if(!logs || logs.length === 0){
             document.getElementById(prefix + '-loading').innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-1"></i> No data to analyze.</div>';
-            return;
+            return Promise.resolve(null);
         }
 
         const payload = {
@@ -284,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             restart_logs: logs
         };
 
-        fetch('http://127.0.0.1:8001/analyze', {
+        return fetch('http://127.0.0.1:8001/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -329,22 +341,188 @@ document.addEventListener('DOMContentLoaded', function() {
                     graphsEl.appendChild(col);
                 }
             });
+
+            return data;
         }).catch(err => {
             document.getElementById(prefix + '-loading').classList.add('d-none');
             const errEl = document.getElementById(prefix + '-error');
             errEl.classList.remove('d-none');
             errEl.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Analysis failed: ' + err.message;
+            return null;
         });
     }
 
-    // Load Non-DDA
-    loadAnalysis(nonddalogs, 'nondda');
+    // Load all analyses
+    Promise.all([
+        loadAnalysis(nonddalogs, 'nondda').then(data => { nondda_data = data; }),
+        loadAnalysis(ddalogs, 'dda').then(data => { dda_data = data; })
+    ]).then(() => {
+        loadCombinedAnalysis();
+    });
 
-    // Load DDA
-    loadAnalysis(ddalogs, 'dda');
+    function loadCombinedAnalysis() {
+        document.getElementById('combined-loading').classList.add('d-none');
+        const summaryEl = document.getElementById('combined-summary');
+        const chartsEl = document.getElementById('combined-charts');
 
-    // Load Combined (all logs)
-    loadAnalysis(allRestartLogs, 'combined');
+        let html = '<div class="row g-2 mb-4">';
+
+        if(nondda_data && nondda_data.summary) {
+            html += '<div class="col-12 col-md-6"><div class="card"><div class="card-header bg-light"><small class="text-muted">Non-DDA Stats</small></div><div class="card-body">';
+            Object.keys(nondda_data.summary).forEach(k => {
+                let v = nondda_data.summary[k];
+                try { v = (typeof v === 'object') ? JSON.stringify(v) : v; } catch(e){}
+                html += '<div class="row g-2 mb-2"><div class="col text-muted small">' + k.replace(/_/g, ' ') + ':</div><div class="col-auto fw-bold">' + v + '</div></div>';
+            });
+            html += '</div></div></div>';
+        }
+
+        if(dda_data && dda_data.summary) {
+            html += '<div class="col-12 col-md-6"><div class="card"><div class="card-header bg-light"><small class="text-muted">DDA Stats</small></div><div class="card-body">';
+            Object.keys(dda_data.summary).forEach(k => {
+                let v = dda_data.summary[k];
+                try { v = (typeof v === 'object') ? JSON.stringify(v) : v; } catch(e){}
+                html += '<div class="row g-2 mb-2"><div class="col text-muted small">' + k.replace(/_/g, ' ') + ':</div><div class="col-auto fw-bold">' + v + '</div></div>';
+            });
+            html += '</div></div></div>';
+        }
+
+        html += '</div>';
+        summaryEl.innerHTML = html;
+
+        if(nondda_data || dda_data) {
+            const col = document.createElement('div');
+            col.className = 'col-12';
+            const card = document.createElement('div');
+            card.className = 'card';
+            const header = document.createElement('div');
+            header.className = 'card-header bg-light';
+            header.innerHTML = '<small class="text-muted">Performa Overlay (Non-DDA vs DDA)</small>';
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            const canvas = document.createElement('canvas');
+            canvas.id = 'comparison-chart';
+            body.appendChild(canvas);
+            card.appendChild(header);
+            card.appendChild(body);
+            col.appendChild(card);
+            chartsEl.appendChild(col);
+
+            createOverlayChart(canvas);
+        }
+    }
+
+    function createOverlayChart(canvas) {
+        const ctx = canvas.getContext('2d');
+
+        // Ekstrak data asli dari restart logs - urut berdasarkan waktu
+        const nondda_actual = allRestartLogs.filter(l => !l.used_dda).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        const dda_actual = allRestartLogs.filter(l => l.used_dda).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        // Buat labels dan data dari restart logs
+        const maxAttempts = Math.max(nondda_actual.length, dda_actual.length, 1);
+        const labels = [];
+        for (let i = 1; i <= maxAttempts; i++) {
+            labels.push('Attempt ' + i);
+        }
+
+        // Extract scores dari Non-DDA attempts
+        const nondda_scores = nondda_actual.map(log => log.previous_score || 0);
+
+        // Extract scores dari DDA attempts
+        const dda_scores = dda_actual.map(log => log.previous_score || 0);
+
+        // Pad arrays agar sama panjang dengan null
+        while (nondda_scores.length < maxAttempts) nondda_scores.push(null);
+        while (dda_scores.length < maxAttempts) dda_scores.push(null);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Non-DDA Mode (' + nondda_actual.length + ' attempts)',
+                        data: nondda_scores,
+                        borderColor: '#858796',
+                        backgroundColor: 'rgba(133, 135, 150, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#858796',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        spanGaps: false
+                    },
+                    {
+                        label: 'DDA Mode (' + dda_actual.length + ' attempts)',
+                        data: dda_scores,
+                        borderColor: '#36b9cc',
+                        backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#36b9cc',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        spanGaps: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 13, weight: 'bold' },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const logIndex = context.dataIndex;
+                                const mode = context.dataset.label.includes('Non-DDA') ? nondda_actual : dda_actual;
+                                if (mode[logIndex]) {
+                                    const log = mode[logIndex];
+                                    return 'Date: ' + new Date(log.created_at).toLocaleDateString() +
+                                           '\nItems: ' + (log.payload ? log.payload.length : 0);
+                                }
+                                return '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Score (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Pengerjaan (Attempts)'
+                        }
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 

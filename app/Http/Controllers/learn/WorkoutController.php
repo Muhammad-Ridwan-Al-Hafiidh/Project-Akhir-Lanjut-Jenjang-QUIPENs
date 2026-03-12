@@ -18,44 +18,26 @@ class WorkoutController extends Controller
 {
     public function restart(Request $request, Workout $workout)
     {
-        $previousScore = $workout->score ?? 0;
-        $sessionLogs = [];
-        try {
-            $sessionLogs = $workout->WorkOutQuiz()->get()->toArray();
-        } catch (\Throwable $e) { }
-
+        $usedDDA = $request->input('used_dda', 1);
         $difficulty = $request->input('dda_difficulty');
-        $usedDDA = $request->input('used_dda', 1); // Default to 1 (with DDA) for backward compatibility
 
-        try {
-            if (class_exists(WorkoutRestartLog::class)) {
-                WorkoutRestartLog::create([
-                    'workout_id' => $workout->id,
-                    'user_id' => Auth::id(),
-                    'previous_score' => $previousScore,
-                    'dda_difficulty' => $difficulty,
-                    'payload' => $sessionLogs,
-                    'used_dda' => (bool)$usedDDA,
-                ]);
-            }
-        } catch (\Throwable $e) { }
-
-        try { $workout->WorkOutQuiz()->delete(); } catch (\Throwable $e) { }
+        // Update workout dengan mode yang akan digunakan
         $workout->update([
+            'used_dda' => (bool)$usedDDA,
+            'current_dda_difficulty' => $difficulty,
             'is_completed' => 0,
             'is_mentor' => 0,
             'score' => 0,
             'date_get_score' => null,
         ]);
 
+        try { $workout->WorkOutQuiz()->delete(); } catch (\Throwable $e) { }
+
         $sessionable = $workout->Sessionable;
-        // Only apply DDA difficulty if used_dda is true
         if ($sessionable && method_exists(WorkoutService::class, 'setWorkOutQuizSyncForThisExcersice')) {
             if ($usedDDA && $difficulty) {
-                // Use DDA difficulty
                 WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model, $difficulty);
             } else {
-                // Non-DDA: use default/random difficulty
                 WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model);
             }
         }
@@ -90,6 +72,50 @@ class WorkoutController extends Controller
         } else {
             $workout->update(['is_completed' => 1, 'score' => 100, 'date_get_score' => now()]);
         }
+
+        // Simpan hasil pengerjaan saat ini ke history SEBELUM di-reset untuk pengerjaan berikutnya
+        try {
+            $sessionLogs = [];
+            try {
+                $sessionLogs = $workout->WorkOutQuiz()->get()->toArray();
+            } catch (\Throwable $e) { }
+
+            $usedDDA = $workout->used_dda ?? true;
+            $score = $workout->score ?? 0;
+            
+            // Tentukan difficulty berdasarkan mode
+            $ddaDifficulty = null;
+            $nonDdaDifficulty = null;
+            
+            if ($usedDDA) {
+                $ddaDifficulty = $workout->current_dda_difficulty;
+            } else {
+                // Deteksi difficulty dari soal yang dikerjakan
+                if (!empty($sessionLogs)) {
+                    $difficulties = collect($sessionLogs)->pluck('difficulty')->filter()->unique()->toArray();
+                    $nonDdaDifficulty = !empty($difficulties) ? implode(',', $difficulties) : null;
+                }
+            }
+
+            if (class_exists(WorkoutRestartLog::class)) {
+                WorkoutRestartLog::create([
+                    'workout_id' => $workout->id,
+                    'user_id' => Auth::id(),
+                    'previous_score' => $score,
+                    'dda_difficulty' => $ddaDifficulty,
+                    'non_dda_difficulty' => $nonDdaDifficulty,
+                    'payload' => $sessionLogs,
+                    'used_dda' => (bool)$usedDDA,
+                ]);
+            }
+        } catch (\Throwable $e) { }
+
+        // Reset untuk pengerjaan berikutnya
+        $workout->update([
+            'used_dda' => 1, // default ke DDA
+            'current_dda_difficulty' => null,
+        ]);
+
         $participantId = $workout->participant_id ?? optional($workout->Participant)->id;
         $currentSessionable = $workout->Sessionable;
         $sessionId = optional($workout->Session)->id ?? optional($currentSessionable)->session_id;
