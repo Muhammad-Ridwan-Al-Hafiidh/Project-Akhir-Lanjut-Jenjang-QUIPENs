@@ -25,6 +25,7 @@ class WorkoutController extends Controller
         } catch (\Throwable $e) { }
 
         $difficulty = $request->input('dda_difficulty');
+        $usedDDA = $request->input('used_dda', 1); // Default to 1 (with DDA) for backward compatibility
 
         try {
             if (class_exists(WorkoutRestartLog::class)) {
@@ -34,6 +35,7 @@ class WorkoutController extends Controller
                     'previous_score' => $previousScore,
                     'dda_difficulty' => $difficulty,
                     'payload' => $sessionLogs,
+                    'used_dda' => (bool)$usedDDA,
                 ]);
             }
         } catch (\Throwable $e) { }
@@ -47,9 +49,17 @@ class WorkoutController extends Controller
         ]);
 
         $sessionable = $workout->Sessionable;
+        // Only apply DDA difficulty if used_dda is true
         if ($sessionable && method_exists(WorkoutService::class, 'setWorkOutQuizSyncForThisExcersice')) {
-            WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model, $difficulty);
+            if ($usedDDA && $difficulty) {
+                // Use DDA difficulty
+                WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model, $difficulty);
+            } else {
+                // Non-DDA: use default/random difficulty
+                WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model);
+            }
         }
+        
         $participantId = $workout->participant_id ?? optional($workout->Participant)->id;
         $sessionableId = $workout->sessionable_id ?? optional($workout->Sessionable)->id;
         if ($participantId && $sessionableId) {
@@ -114,4 +124,3 @@ class WorkoutController extends Controller
         return response()->json($result);
     }
 }
-

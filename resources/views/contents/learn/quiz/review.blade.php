@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section("content")
 
@@ -108,20 +108,71 @@
                         @include('contents.learn.quiz._dda_card')
                     </div>
 
-                    {{-- DDA Analysis Panel --}}
-                    <div class="card shadow-sm border-left-info mb-4">
-                        <div class="card-header bg-gradient-info text-white py-2">
-                            <h6 class="m-0"><i class="fas fa-chart-line me-2"></i> DDA Analysis</h6>
+                    {{-- Tabbed Analysis Panel --}}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light py-2">
+                            <h6 class="m-0 text-muted"><i class="fas fa-chart-line me-2"></i> Learning Analysis</h6>
                         </div>
-                        <div class="card-body">
-                            <div id="dda-analysis">
-                                <div id="dda-loading" class="text-center py-3">
-                                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
-                                    <span class="text-muted">Loading analysis...</span>
+                        <div class="card-body p-0">
+                            {{-- Nav Tabs --}}
+                            <ul class="nav nav-tabs border-bottom-0" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="tab-nondda" data-bs-toggle="tab" data-bs-target="#content-nondda" type="button" role="tab" aria-controls="content-nondda" aria-selected="true">
+                                        <i class="fas fa-ban me-1"></i> Non-DDA
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-dda" data-bs-toggle="tab" data-bs-target="#content-dda" type="button" role="tab" aria-controls="content-dda" aria-selected="false">
+                                        <i class="fas fa-robot me-1"></i> DDA
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-combined" data-bs-toggle="tab" data-bs-target="#content-combined" type="button" role="tab" aria-controls="content-combined" aria-selected="false">
+                                        <i class="fas fa-balance-scale me-1"></i> Comparison
+                                    </button>
+                                </li>
+                            </ul>
+
+                            {{-- Tab Content --}}
+                            <div class="tab-content p-4">
+                                {{-- Non-DDA Tab --}}
+                                <div class="tab-pane fade show active" id="content-nondda" role="tabpanel" aria-labelledby="tab-nondda">
+                                    <div id="nondda-analysis">
+                                        <div id="nondda-loading" class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                                            <span class="text-muted">Loading Non-DDA analysis...</span>
+                                        </div>
+                                        <div id="nondda-error" class="alert alert-danger d-none"></div>
+                                        <div id="nondda-summary"></div>
+                                        <div id="nondda-graphs" class="row g-3"></div>
+                                    </div>
                                 </div>
-                                <div id="dda-error" class="alert alert-danger d-none"></div>
-                                <div id="dda-summary"></div>
-                                <div id="dda-graphs" class="row g-3"></div>
+
+                                {{-- DDA Tab --}}
+                                <div class="tab-pane fade" id="content-dda" role="tabpanel" aria-labelledby="tab-dda">
+                                    <div id="dda-analysis">
+                                        <div id="dda-loading" class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                                            <span class="text-muted">Loading DDA analysis...</span>
+                                        </div>
+                                        <div id="dda-error" class="alert alert-danger d-none"></div>
+                                        <div id="dda-summary"></div>
+                                        <div id="dda-graphs" class="row g-3"></div>
+                                    </div>
+                                </div>
+
+                                {{-- Combined Tab --}}
+                                <div class="tab-pane fade" id="content-combined" role="tabpanel" aria-labelledby="tab-combined">
+                                    <div id="combined-analysis">
+                                        <div id="combined-loading" class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                            <span class="text-muted">Loading comparison...</span>
+                                        </div>
+                                        <div id="combined-error" class="alert alert-danger d-none"></div>
+                                        <div id="combined-summary"></div>
+                                        <div id="combined-graphs" class="row g-3"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -129,7 +180,7 @@
                     {{-- Restart History --}}
                     <div class="card shadow-sm border-left-secondary mb-4">
                         <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 text-muted"><i class="fas fa-history me-2"></i> Restart History (DDA)</h6>
+                            <h6 class="m-0 text-muted"><i class="fas fa-history me-2"></i> Restart History</h6>
                             @if(optional($workout->RestartLogs)->count() > 0)
                                 <span class="badge bg-secondary">{{ $workout->RestartLogs()->count() }} records</span>
                             @endif
@@ -141,16 +192,24 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="ps-3">#</th>
+                                                <th>Type</th>
                                                 <th>Date/Time</th>
                                                 <th>Difficulty</th>
                                                 <th>Previous Score</th>
-                                                <th>Payload Items</th>
+                                                <th>Items</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($workout->RestartLogs()->latest()->limit(5)->get() as $idx => $log)
                                                 <tr>
                                                     <td class="ps-3">{{ $idx + 1 }}</td>
+                                                    <td>
+                                                        @if($log->used_dda ?? true)
+                                                            <span class="badge bg-info text-white"><i class="fas fa-robot me-1"></i> DDA</span>
+                                                        @else
+                                                            <span class="badge bg-secondary text-white"><i class="fas fa-ban me-1"></i> Non-DDA</span>
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         <i class="far fa-clock text-muted me-1"></i>
                                                         {{ $log->created_at->format("d M Y, H:i") }}
@@ -166,7 +225,7 @@
                                                                 $diffLabel = 'No DDA';
                                                             }
                                                         @endphp
-                                                        <span class="badge bg-{{ $diffColor }}">{{ $diffLabel }}</span>
+                                                        <span class="badge text-white bg-{{ $diffColor }}">{{ $diffLabel }}</span>
                                                     </td>
                                                     <td>
                                                         <strong>{{ $log->previous_score ?? '-' }}</strong>
@@ -188,22 +247,15 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- Card Footer with Restart Button --}}
-                <div class="card-footer bg-light text-center py-3">
-                    <form method="post" class="d-inline" action="{{ route('quizRestart', $workout->id) }}" onsubmit="return confirm('Restart this quiz? This will clear previous answers.')">
-                        @csrf
-                        
-                    </form>
-                </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const restartLogs = {!! json_encode(
+    const allRestartLogs = {!! json_encode(
         (isset($workout) && $workout->RestartLogs()->count() > 0)
             ? $workout->RestartLogs()->latest()->limit(50)->get()->map(function($l){
                 $p = is_array($l->payload) ? $l->payload : (is_string($l->payload) ? json_decode($l->payload, true) : []);
@@ -218,67 +270,81 @@ document.addEventListener('DOMContentLoaded', function() {
             : []
     ) !!};
 
-    if(!restartLogs || restartLogs.length === 0){
-        document.getElementById('dda-loading').innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-1"></i> No restart logs to analyze.</div>';
-        return;
+    const nonddalogs = allRestartLogs.filter(l => !l.used_dda);
+    const ddalogs = allRestartLogs.filter(l => l.used_dda);
+
+    function loadAnalysis(logs, prefix) {
+        if(!logs || logs.length === 0){
+            document.getElementById(prefix + '-loading').innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-1"></i> No data to analyze.</div>';
+            return;
+        }
+
+        const payload = {
+            workout_id: {{ $workout->id ?? 'null' }},
+            restart_logs: logs
+        };
+
+        fetch('http://127.0.0.1:8001/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => {
+            if(!res.ok) throw new Error('Server returned ' + res.status);
+            return res.json();
+        }).then(data => {
+            document.getElementById(prefix + '-loading').classList.add('d-none');
+            const summary = data.summary || {};
+            const graphs = data.graphs || {};
+
+            const sumEl = document.getElementById(prefix + '-summary');
+            let html = '<div class="row g-2 mb-3">';
+            Object.keys(summary).forEach(k => {
+                let v = summary[k];
+                try { v = (typeof v === 'object') ? JSON.stringify(v) : v; } catch(e){}
+                html += '<div class="col-6 col-md-3"><div class="border rounded p-2 text-center bg-light"><div class="small text-muted">' + k.replace(/_/g, ' ') + '</div><div class="fw-bold">' + v + '</div></div></div>';
+            });
+            html += '</div>';
+            sumEl.innerHTML = html;
+
+            const graphsEl = document.getElementById(prefix + '-graphs');
+            Object.entries(graphs).forEach(([k, v]) => {
+                if(v){
+                    const col = document.createElement('div');
+                    col.className = 'col-12 col-md-6';
+                    const card = document.createElement('div');
+                    card.className = 'card h-100';
+                    const header = document.createElement('div');
+                    header.className = 'card-header py-2 bg-light';
+                    header.innerHTML = '<small class="text-muted">' + k.replace(/_/g, ' ').toUpperCase() + '</small>';
+                    const body = document.createElement('div');
+                    body.className = 'card-body text-center p-2';
+                    const img = document.createElement('img');
+                    img.src = v;
+                    img.alt = k;
+                    img.className = 'img-fluid';
+                    body.appendChild(img);
+                    card.appendChild(header);
+                    card.appendChild(body);
+                    col.appendChild(card);
+                    graphsEl.appendChild(col);
+                }
+            });
+        }).catch(err => {
+            document.getElementById(prefix + '-loading').classList.add('d-none');
+            const errEl = document.getElementById(prefix + '-error');
+            errEl.classList.remove('d-none');
+            errEl.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Analysis failed: ' + err.message;
+        });
     }
 
-    const payload = {
-        workout_id: {{ $workout->id ?? 'null' }},
-        restart_logs: restartLogs
-    };
+    // Load Non-DDA
+    loadAnalysis(nonddalogs, 'nondda');
 
-    fetch('http://127.0.0.1:8001/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).then(res => {
-        if(!res.ok) throw new Error('Server returned ' + res.status);
-        return res.json();
-    }).then(data => {
-        document.getElementById('dda-loading').classList.add('d-none');
-        const summary = data.summary || {};
-        const graphs = data.graphs || {};
+    // Load DDA
+    loadAnalysis(ddalogs, 'dda');
 
-        const sumEl = document.getElementById('dda-summary');
-        let html = '<div class="row g-2 mb-3">';
-        Object.keys(summary).forEach(k => {
-            let v = summary[k];
-            try { v = (typeof v === 'object') ? JSON.stringify(v) : v; } catch(e){}
-            html += '<div class="col-6 col-md-3"><div class="border rounded p-2 text-center bg-light"><div class="small text-muted">' + k.replace(/_/g, ' ') + '</div><div class="fw-bold">' + v + '</div></div></div>';
-        });
-        html += '</div>';
-        sumEl.innerHTML = html;
-
-        const graphsEl = document.getElementById('dda-graphs');
-        Object.entries(graphs).forEach(([k, v]) => {
-            if(v){
-                const col = document.createElement('div');
-                col.className = 'col-12 col-md-6';
-                const card = document.createElement('div');
-                card.className = 'card h-100';
-                const header = document.createElement('div');
-                header.className = 'card-header py-2 bg-light';
-                header.innerHTML = '<small class="text-muted">' + k.replace(/_/g, ' ').toUpperCase() + '</small>';
-                const body = document.createElement('div');
-                body.className = 'card-body text-center p-2';
-                const img = document.createElement('img');
-                img.src = v;
-                img.alt = k;
-                img.className = 'img-fluid';
-                body.appendChild(img);
-                card.appendChild(header);
-                card.appendChild(body);
-                col.appendChild(card);
-                graphsEl.appendChild(col);
-            }
-        });
-    }).catch(err => {
-        document.getElementById('dda-loading').classList.add('d-none');
-        const errEl = document.getElementById('dda-error');
-        errEl.classList.remove('d-none');
-        errEl.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Analysis failed: ' + err.message;
-    });
+    // Load Combined (all logs)
+    loadAnalysis(allRestartLogs, 'combined');
 });
 </script>
 
@@ -286,11 +352,20 @@ document.addEventListener('DOMContentLoaded', function() {
 .bg-gradient-primary {
     background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
 }
-.bg-gradient-info {
-    background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 1rem;
 }
-.border-left-info {
-    border-left: 4px solid #36b9cc !important;
+.nav-tabs .nav-link.active {
+    color: #4e73df;
+    border-bottom-color: #4e73df;
+    background-color: transparent;
+}
+.nav-tabs .nav-link:hover {
+    border-bottom-color: #4e73df;
+    color: #4e73df;
 }
 .border-left-secondary {
     border-left: 4px solid #858796 !important;
