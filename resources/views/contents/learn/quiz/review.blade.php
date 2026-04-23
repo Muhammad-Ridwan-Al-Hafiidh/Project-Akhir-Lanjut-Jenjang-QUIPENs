@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section("content")
 
@@ -103,6 +103,7 @@
                         ])
                     </div>
 
+
                     {{-- DDA Card --}}
                     <div class="mb-4">
                         @include('contents.learn.quiz._dda_card')
@@ -131,6 +132,12 @@
                                         <i class="fas fa-balance-scale me-1"></i> Comparison
                                     </button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-topics" data-bs-toggle="tab" data-bs-target="#content-topics" type="button" role="tab" aria-controls="content-topics" aria-selected="false">
+                                        <i class="fas fa-tags me-1"></i> Topics
+                                    </button>
+                                </li>
+
                             </ul>
 
                             {{-- Tab Content --}}
@@ -173,11 +180,29 @@
                                         <div id="combined-charts" class="row g-3"></div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    {{-- Restart History --}}
+                                {{-- Topics Tab --}}
+                                <div class="tab-pane fade" id="content-topics" role="tabpanel" aria-labelledby="tab-topics">
+                                    <div class="card shadow-sm border-0">
+                                        <div class="card-header bg-light py-3 d-flex align-items-center justify-content-between">
+                                            <h6 class="m-0 text-muted"><i class="fas fa-chart-pie me-2"></i> Topic Level Progress</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="topic-levels-container">
+                                                <div class="text-center py-4">
+                                                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                                                    <span class="text-muted">Loading topic level analysis...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- Restart History --}}
                     <div class="card shadow-sm border-left-secondary mb-4">
                         <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 text-muted"><i class="fas fa-history me-2"></i> Restart History</h6>
@@ -274,6 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'previous_score' => $l->previous_score !== null ? (float)$l->previous_score : null,
                     'payload' => is_array($p) ? $p : [],
                     'used_dda' => $l->used_dda ?? true,
+                    'topic_levels' => $l->topic_levels && is_string($l->topic_levels) ? json_decode($l->topic_levels, true) : ($l->topic_levels ?? null),
                 ];
             })->toArray()
             : []
@@ -284,6 +310,66 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let nondda_data = null;
     let dda_data = null;
+
+    // Load Topic Levels Analysis
+    loadTopicLevelsAnalysis();
+
+    function loadTopicLevelsAnalysis() {
+        const container = document.getElementById('topic-levels-container');
+
+        // Aggregate topic levels dari semua logs
+        const allTopicLevels = {};
+
+        allRestartLogs.forEach(log => {
+            if (log.topic_levels) {
+                // Handle both object and JSON string formats
+                const topicLevels = typeof log.topic_levels === 'string' ? JSON.parse(log.topic_levels) : log.topic_levels;
+                if (typeof topicLevels === 'object' && topicLevels !== null) {
+                    Object.entries(topicLevels).forEach(([topic, level]) => {
+                        allTopicLevels[topic] = Math.max(allTopicLevels[topic] || 0, level);
+                    });
+                }
+            }
+        });
+
+        if (Object.keys(allTopicLevels).length === 0) {
+            container.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No topic level data available yet.</div>';
+            return;
+        }
+
+        // Generate HTML untuk topic levels
+        let html = '<div class="row g-3">';
+
+        Object.entries(allTopicLevels)
+            .sort(([,a], [,b]) => b - a) // Sort by level descending
+            .forEach(([topic, level]) => {
+                const percentage = (level / 5) * 100;
+                const colorClass = level >= 4 ? 'success' : (level >= 3 ? 'info' : (level >= 2 ? 'warning' : 'secondary'));
+
+                html += `
+                    <div class="col-12 col-md-6">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="m-0">
+                                        <i class="fas fa-bookmark text-${colorClass} me-2"></i>
+                                        ${topic}
+                                    </h6>
+                                    <span class="badge bg-${colorClass}">Level ${level}/5</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-${colorClass}" role="progressbar" style="width: ${percentage}%"></div>
+                                </div>
+                                <div class="small text-muted mt-2">${percentage.toFixed(0)}% Progress</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
 
     function loadAnalysis(logs, prefix) {
         if(!logs || logs.length === 0){
@@ -523,6 +609,164 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    // ===== QUIZ vs OVERALL COMPARISON =====
+    const participant_id = {{ $participant->id ?? 'null' }};
+    const term_id = {{ $activity->session->term_id ?? 'null' }};
+    let quizComparisonCharts_review = {};
+
+
+    function loadAvailableQuizzesReview() {
+        if (!term_id) return;
+
+        fetch(`/mentor/topic-comparison/quizzes?term_id=${term_id}`)
+            .then(r => r.json())
+            .then(quizzes => {
+                const selector = document.getElementById('quiz_selector_review');
+                selector.innerHTML = '<option value="">-- Select a Quiz --</option>';
+                quizzes.forEach(q => {
+                    const opt = document.createElement('option');
+                    opt.value = q.id;
+                    opt.textContent = q.title;
+                    selector.appendChild(opt);
+                });
+            })
+            .catch(e => console.error('Failed to load quizzes:', e));
+    }
+
+    document.getElementById('quiz_selector_review')?.addEventListener('change', function() {
+        document.getElementById('btn-load-quiz-review').disabled = !this.value;
+    });
+
+    document.getElementById('btn-load-quiz-review')?.addEventListener('click', async function() {
+        const sessionableId = document.getElementById('quiz_selector_review').value;
+        if (!sessionableId) return;
+
+        document.getElementById('quiz-comparison-content').innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-success me-2" role="status"></div>
+                <span class="text-muted">Loading quiz comparison...</span>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('{{ route('analytics.topic-levels-quiz-comparison') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    term_id: term_id,
+                    sessionable_id: sessionableId,
+                    student_ids: [participant_id]
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                renderQuizComparisonReview(data);
+            } else {
+                document.getElementById('quiz-comparison-error').classList.remove('d-none');
+                document.getElementById('quiz-comparison-error').innerHTML =
+                    `<i class="fas fa-exclamation-triangle me-2"></i>${data.error || 'Failed to load'}`;
+            }
+        } catch (e) {
+            document.getElementById('quiz-comparison-error').classList.remove('d-none');
+            document.getElementById('quiz-comparison-error').innerHTML =
+                `<i class="fas fa-exclamation-triangle me-2"></i>${e.message}`;
+        }
+    });
+
+    function renderQuizComparisonReview(data) {
+        const container = document.getElementById('quiz-comparison-content');
+        let html = `
+            <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="m-0"><i class="fas fa-book me-2"></i><strong>${data.quiz_name}</strong></h6>
+                            <small class="text-muted">Topic levels dari quiz ini saja</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Topic</th>
+                                            <th class="text-center">Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.topics.map(topic => {
+                                            const level = data.quiz_data[0]?.levels[topic] ?? 0;
+                                            const bgClass = ['bg-secondary', 'bg-warning', 'bg-warning', 'bg-info', 'bg-success'][level] || 'bg-secondary';
+                                            return `<tr>
+                                                <td>${topic}</td>
+                                                <td class="text-center text-white ${bgClass}"><strong>L${level}</strong></td>
+                                            </tr>`;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="m-0"><i class="fas fa-chart-line me-2"></i>Overall Progress</h6>
+                            <small class="text-muted">Topic levels dari semua quiz</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Topic</th>
+                                            <th class="text-center">Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.topics.map(topic => {
+                                            const level = data.overall_data[0]?.levels[topic] ?? 0;
+                                            const bgClass = ['bg-secondary', 'bg-warning', 'bg-warning', 'bg-info', 'bg-success'][level] || 'bg-secondary';
+                                            return `<tr>
+                                                <td>${topic}</td>
+                                                <td class="text-center text-white ${bgClass}"><strong>L${level}</strong></td>
+                                            </tr>`;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="m-0">Perbandingan Rata-rata</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <canvas id="quiz-avg-chart-review"></canvas>
+                                </div>
+                                <div class="col-md-6">
+                                    <canvas id="overall-avg-chart-review"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+        renderQuizCharts(data);
+    }
+
 });
 </script>
 
@@ -551,3 +795,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 @endsection
+
+

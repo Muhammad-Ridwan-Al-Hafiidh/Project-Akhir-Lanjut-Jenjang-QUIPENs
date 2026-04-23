@@ -33,7 +33,7 @@ class QuizRequest extends FormRequest
             'is_shuffle' => 'required|boolean',
             'min_pass_score' => 'required|integer|between:0,100',
             'show_question' => 'required',
-            'random_question' => 'required|integer|between:0,100'
+            'random_question' => 'nullable|integer|between:0,100'
         ];
     }
 }

@@ -13,6 +13,7 @@ class WorkoutRestartLog extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'topic_levels' => 'json',
     ];
 
     public function workout()
@@ -20,3 +21,4 @@ class WorkoutRestartLog extends Model
         return $this->belongsTo(Workout::class);
     }
 }
+

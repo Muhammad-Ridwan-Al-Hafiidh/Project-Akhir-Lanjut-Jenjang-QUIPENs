@@ -41,7 +41,7 @@ class WorkoutController extends Controller
                 WorkoutService::setWorkOutQuizSyncForThisExcersice($workout, $sessionable->Model);
             }
         }
-        
+
         $participantId = $workout->participant_id ?? optional($workout->Participant)->id;
         $sessionableId = $workout->sessionable_id ?? optional($workout->Sessionable)->id;
         if ($participantId && $sessionableId) {
@@ -64,7 +64,7 @@ class WorkoutController extends Controller
         return $task->Render($participant, $sessionable);
     }
 
-    public function completedAndNext(Workout $workout, Request $request)
+        public function completedAndNext(Workout $workout, Request $request)
     {
         $hasLogs = $workout->WorkOutQuiz && $workout->WorkOutQuiz->count() > 0;
         if ($hasLogs) {
@@ -80,13 +80,87 @@ class WorkoutController extends Controller
                 $sessionLogs = $workout->WorkOutQuiz()->get()->toArray();
             } catch (\Throwable $e) { }
 
+            // Deteksi apakah ini pengerjaan PERTAMA KALI
+            $isFirstAttempt = $workout->RestartLogs()->count() === 0;
+
             $usedDDA = $workout->used_dda ?? true;
+            // Override: pengerjaan pertama HARUS NON-DDA
+            if ($isFirstAttempt) {
+                $usedDDA = false;
+            }
+
             $score = $workout->score ?? 0;
-            
+
+// CALCULATE TOPIC LEVELS BASED ON ACTUAL PERFORMANCE
+$topicLevels = [];
+try {
+    if ($hasLogs) {
+        // Fetch all quiz logs with their related questions
+        $quizLogs = $workout->WorkOutQuiz()
+            ->with('Question')
+            ->get();
+
+        if ($quizLogs->count() > 0) {
+            // Group logs by topic and calculate accuracy per topic
+            $topicStats = [];
+
+            foreach ($quizLogs as $log) {
+                $question = $log->Question;
+                if ($question && $question->topic) {
+                    $topic = $question->topic;
+
+                    if (!isset($topicStats[$topic])) {
+                        $topicStats[$topic] = [
+                            'total_score' => 0,
+                            'total_count' => 0,
+                        ];
+                    }
+
+                    // Accumulate scores (assuming score is 0-100 or can be converted)
+                    $questionScore = (int) ($log->score ?? 0);
+                    $topicStats[$topic]['total_score'] += $questionScore;
+                    $topicStats[$topic]['total_count'] += 1;
+                }
+            }
+
+            // Convert accuracy to level (0-4 scale)
+            foreach ($topicStats as $topic => $stats) {
+                if ($stats['total_count'] > 0) {
+                    $accuracy = ($stats['total_score'] / ($stats['total_count'] * 100)) * 100;
+
+                    // Map accuracy percentage to level
+                    if ($accuracy >= 80) {
+                        $topicLevels[$topic] = 4;
+                    } elseif ($accuracy >= 60) {
+                        $topicLevels[$topic] = 3;
+                    } elseif ($accuracy >= 40) {
+                        $topicLevels[$topic] = 2;
+                    } elseif ($accuracy > 0) {
+                        $topicLevels[$topic] = 1;
+                    } else {
+                        $topicLevels[$topic] = 0;
+                    }
+                }
+            }
+        }
+    } else {
+        // No logs, initialize with defaults from quiz topics
+        if ($workout->Sessionable) {
+            $quizModel = $workout->Sessionable->Model;
+            if ($quizModel && method_exists($quizModel, 'getTopicsArray')) {
+                $topics = $quizModel->getTopicsArray();
+                foreach ($topics as $topic) {
+                    $topicLevels[$topic] = 0;
+                }
+            }
+        }
+    }
+} catch (\Throwable $e) { }
+
             // Tentukan difficulty berdasarkan mode
             $ddaDifficulty = null;
             $nonDdaDifficulty = null;
-            
+
             if ($usedDDA) {
                 $ddaDifficulty = $workout->current_dda_difficulty;
             } else {
@@ -104,15 +178,16 @@ class WorkoutController extends Controller
                     'previous_score' => $score,
                     'dda_difficulty' => $ddaDifficulty,
                     'non_dda_difficulty' => $nonDdaDifficulty,
+                    'topic_levels' => !empty($topicLevels) ? json_encode($topicLevels) : null,
                     'payload' => $sessionLogs,
                     'used_dda' => (bool)$usedDDA,
                 ]);
             }
         } catch (\Throwable $e) { }
 
-        // Reset untuk pengerjaan berikutnya
+        // Reset untuk pengerjaan berikutnya - GUNAKAN DDA UNTUK ATTEMPT BERIKUTNYA
         $workout->update([
-            'used_dda' => 1, // default ke DDA
+            'used_dda' => 1, // default ke DDA untuk pengerjaan berikutnya
             'current_dda_difficulty' => null,
         ]);
 
@@ -140,6 +215,7 @@ class WorkoutController extends Controller
         }
         return redirect()->back();
     }
+
 
     public function workout(Request $request)
     {

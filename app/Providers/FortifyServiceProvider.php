@@ -21,7 +21,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(
+            \Laravel\Fortify\Contracts\VerifyEmailViewResponse::class,
+            \Laravel\Fortify\Http\Responses\VerifyEmailResponse::class
+        );
     }
 
     /**

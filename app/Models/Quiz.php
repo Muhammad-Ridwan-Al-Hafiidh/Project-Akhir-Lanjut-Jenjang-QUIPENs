@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Quiz extends Model
 {
@@ -39,6 +40,33 @@ class Quiz extends Model
     public function WorkoutForLearner(){
         return $this->hasOne(Workout::class, 'participant_id', 'id')
             ->where('user_id', $this->user_id);
+    }
+
+    /**
+     * Get topics for this quiz
+     */
+    public function topics(): HasMany
+    {
+        return $this->hasMany(QuizTopic::class);
+    }
+
+    /**
+     * Get array of topic names
+     */
+    public function getTopicsArray()
+    {
+        return $this->topics()->pluck('topic')->toArray();
+    }
+
+    /**
+     * Get questions filtered by selected topics
+     */
+    public function getQuestionsFilteredByTopics()
+    {
+        $topics = $this->getTopicsArray();
+        return Question::when(!empty($topics), function($q) use ($topics) {
+            return $q->whereIn('topic', $topics);
+        })->get();
     }
 
 }

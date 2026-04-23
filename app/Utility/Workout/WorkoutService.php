@@ -40,20 +40,47 @@ abstract class WorkoutService
             return [];
         }
 
+        // Get topics for this quiz
+        $topicsArray = $quiz->getTopicsArray();
+        $hasTopics = !empty($topicsArray);
+        
+        // Check if random_question is set
         $n = (int) ($quiz->random_question ?? 0);
 
         if ($n > 0) {
-            // Prefer global bank when random_question is set
+            // Use N random questions from bank, filtered by topics
             $query = Question::query();
+            
+            if ($hasTopics) {
+                $query->whereIn('topic', $topicsArray);
+            }
+            
             if ($difficulty) {
                 $query->where('difficulty', $difficulty);
             }
+            
             $questions = $query->inRandomOrder()->limit($n)->get();
         } else {
-            // Use attached questions when not random
-            $questions = $quiz->Questions; // attached questions
+            // Use attached questions, filtered by topics
+            $questions = $quiz->Questions;
+            
+            if ($hasTopics) {
+                $questions = $questions->filter(function($q) use ($topicsArray) {
+                    return in_array($q->topic, $topicsArray);
+                })->values();
+            }
 
-            // If difficulty filter requested, try to filter attached questions
+            // Fallback to question bank if no attached questions remain
+            if ($questions->count() === 0 && $hasTopics) {
+                $questions = Question::whereIn('topic', $topicsArray)->get();
+            }
+
+            // Final fallback: all questions
+            if ($questions->count() === 0) {
+                $questions = Question::all();
+            }
+
+            // Apply difficulty filter if specified
             if ($difficulty) {
                 $filtered = collect($questions)->filter(function ($q) use ($difficulty) {
                     return isset($q->difficulty) ? ($q->difficulty == $difficulty) : false;
@@ -62,9 +89,9 @@ abstract class WorkoutService
                 if ($filtered->count() > 0) {
                     $questions = $filtered;
                 }
-                // if filtered is empty, keep original attached questions as fallback
             }
 
+            // Apply shuffle/sort
             if ((int)($quiz->is_shuffle ?? 0) === 1) {
                 $questions = $questions instanceof \Illuminate\Support\Collection ? $questions->shuffle()->values() : collect($questions)->shuffle()->values();
             } else {
@@ -85,9 +112,6 @@ abstract class WorkoutService
         return null;
     }
 
-    /**
-     * Recompute workout score and mark completion.
-     */
     public static function recomputeScore(Workout $workout): int
     {
         $logs = $workout->WorkOutQuiz;

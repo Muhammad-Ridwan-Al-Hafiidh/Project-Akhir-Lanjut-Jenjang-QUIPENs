@@ -6,17 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class WorkoutQuizLog extends Model
+class QuizTopic extends Model
 {
     use HasFactory;
 
+    protected $table = 'quiz_topics';
     protected $guarded = [];
 
-    /**
-     * Get the question associated with this log entry
-     */
-    public function Question(): BelongsTo
+    public function quiz(): BelongsTo
     {
-        return $this->belongsTo(Question::class);
+        return $this->belongsTo(Quiz::class);
     }
 }

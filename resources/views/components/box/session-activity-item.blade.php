@@ -1,4 +1,4 @@
-<div>
+﻿<div>
     <div class="row">
 
         <div class="col-12 mb-2">
@@ -31,6 +31,24 @@
                                     </a>
                                 </span>
                             </div>
+
+                            {{-- NEW: Display quiz topics if this is a quiz activity --}}
+                            @if($activity->Model instanceof \App\Models\Quiz)
+                                @php
+                                    $quizTopics = \DB::table('quiz_topics')
+                                        ->where('quiz_id', $activity->Model->id)
+                                        ->pluck('topic');
+                                @endphp
+                                @if($quizTopics->count() > 0)
+                                    <div class="mt-2 d-flex flex-wrap gap-1">
+                                        @foreach($quizTopics as $topic)
+                                            <span class="badge badge-sm bg-info text-white">
+                                                <i class="fas fa-bookmark fa-xs me-1"></i> {{ $topic }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            @endif
 
                         </div>
 

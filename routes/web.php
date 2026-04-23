@@ -30,6 +30,7 @@ use App\Http\Controllers\QuizController;
 use App\Http\Controllers\RubricController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\Analytics\TopicLevelComparisonController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -87,6 +88,11 @@ Route::prefix('mentor')->middleware(['verified'])->group(function () {
     Route::get('/workout/{participant}', [ParticipantController::class, 'participantWorkout'])->name('learnerParticipantWorkout');
     Route::get('/review/workout/{participant}/{workout}', [ParticipantController::class, 'reviewWorkout'])->name('reviewWorkout');
     Route::post('/review/update', [ParticipantController::class, 'reviewWorkoutUpdate'])->name('workoutMentorReviewUpdate');
+    // Topic Level Comparison (DDA vs Non-DDA)
+    Route::get('/topic-comparison', [TopicLevelComparisonController::class, 'index'])->name('topicComparison');
+    Route::post('/topic-comparison/data', [TopicLevelComparisonController::class, 'getComparisonData'])->name('analytics.topic-levels-comparison.data');
+    Route::get('/topic-comparison/quizzes', [TopicLevelComparisonController::class, 'getAvailableQuizzes'])->name('api.topic-comparison.quizzes');
+    Route::post('/topic-comparison/quiz', [TopicLevelComparisonController::class, 'getQuizComparison'])->name('analytics.topic-levels-quiz-comparison');
 
     Route::resource('mentor-comments', MentorCommentsController::class);
 });
@@ -166,3 +172,5 @@ Route::prefix('panel')->middleware(['verified'])->group(function () {
     Route::resource('permission', PermissionController::class)->middleware('role:Super-Admin');
     Route::post('role/permission/{role}', [RoleController::class, 'permission'])->name("role_permissions");
 });
+
+

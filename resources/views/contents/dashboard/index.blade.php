@@ -181,7 +181,132 @@
         </div>
     </div>
 
-    {{-- Panel Analisa Statistik User - Full Width --}}
+        {{-- Topic Mastery Card --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h5 class="mb-0 text-white"><i class="fas fa-fire me-2"></i> Penguasaan Topik</h5>
+                </div>
+                <div class="card-body">
+                    @if($user->topicLevels && count($user->topicLevels) > 0)
+                        <div class="row g-2">
+                            @php
+                                $totalLevel = 0;
+                                $topicCount = count($user->topicLevels);
+                                foreach ($user->topicLevels as $level) {
+                                    $totalLevel += $level;
+                                }
+                                $avgTopicLevel = $topicCount > 0 ? round($totalLevel / $topicCount, 1) : 0;
+                            @endphp
+
+                            {{-- Summary Stats --}}
+                            <div class="col-12 mb-3">
+                                <div class="row g-2 text-center">
+                                    <div class="col-6 col-md-3">
+                                        <div class="border rounded-2 p-2 bg-light">
+                                            <div class="small text-muted">Total Topik</div>
+                                            <div class="h4 mb-0 text-primary fw-bold">{{ $topicCount }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="border rounded-2 p-2 bg-light">
+                                            <div class="small text-muted">Rata-rata Level</div>
+                                            <div class="h4 mb-0 text-success fw-bold">{{ $avgTopicLevel }}/4</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="border rounded-2 p-2 bg-light">
+                                            <div class="small text-muted">Master (L4)</div>
+                                            <div class="h4 mb-0 text-info fw-bold">{{ count(array_filter($user->topicLevels, fn($l) => $l >= 4)) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="border rounded-2 p-2 bg-light">
+                                            <div class="small text-muted">Belum Dikuasai (L0)</div>
+                                            <div class="h4 mb-0 text-danger fw-bold">{{ count(array_filter($user->topicLevels, fn($l) => $l == 0)) }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Topic Grid --}}
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-borderless align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Topik</th>
+                                                <th class="text-center" style="width: 100px;">Level</th>
+                                                <th style="width: 200px;">Progress</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($user->topicLevels as $topic => $level)
+                                                @php
+                                                    $percentage = ($level / 4) * 100;
+                                                    $colorClass = $level >= 4 ? 'success' : ($level >= 3 ? 'info' : ($level >= 2 ? 'warning' : ($level >= 1 ? 'danger' : 'secondary')));
+                                                @endphp
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="fas fa-book text-{{ $colorClass }} me-2"></i>
+                                                            <span class="fw-500">{{ $topic }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-{{ $colorClass }} fs-6">
+                                                            L{{ $level }}<span class="text-white-50">/4</span>
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="progress" style="height: 8px;">
+                                                            <div class="progress-bar progress-bar-striped bg-{{ $colorClass }}" role="progressbar" style="width: {{ $percentage }}%" aria-valuenow="{{ $level }}" aria-valuemin="0" aria-valuemax="4"></div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- Mastery Summary --}}
+                            <div class="col-12 mt-3">
+                                <div class="alert alert-light border rounded-2 mb-0">
+                                    <div class="d-flex align-items-center">
+                                        @if($avgTopicLevel >= 3)
+                                            <i class="fas fa-star fa-2x text-warning me-3"></i>
+                                            <div>
+                                                <strong>Excellent Progress!</strong> Anda sudah menguasai mayoritas topik. Terus pertahankan dan tingkatkan level!
+                                            </div>
+                                        @elseif($avgTopicLevel >= 2)
+                                            <i class="fas fa-chart-line fa-2x text-info me-3"></i>
+                                            <div>
+                                                <strong>Good Progress!</strong> Anda sedang membangun penguasaan topik. Fokus pada topik yang masih rendah.
+                                            </div>
+                                        @else
+                                            <i class="fas fa-rocket fa-2x text-primary me-3"></i>
+                                            <div>
+                                                <strong>Keep Going!</strong> Mulai dari topik dasar dan tingkatkan level secara bertahap.
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-2 text-secondary"></i>
+                            <p class="mb-0 h6">Belum ada data topik.</p>
+                            <p class="small text-muted">Kerjakan quiz untuk mulai mengumpulkan data topik mastery!</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+{{-- Panel Analisa Statistik User - Full Width --}}
     @php
         $studentUserIds = \DB::table('term_user')->where('role_id', 4)->pluck('user_id')->unique();
 
@@ -322,3 +447,4 @@
 </style>
 
 @endsection
+
