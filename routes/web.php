@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Http\Controllers\Acl\PermissionController;
 use App\Http\Controllers\Acl\RoleController;
@@ -31,6 +31,9 @@ use App\Http\Controllers\RubricController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Analytics\TopicLevelComparisonController;
+use App\Http\Controllers\Analytics\DDAMetricsController;
+use App\Http\Controllers\Analytics\DDAComparisonController;
+use App\Http\Controllers\Analytics\SPKRecommendationController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -60,7 +63,7 @@ Route::group(['prefix' => 'front', 'as' => 'front.'], function () {
 | Web Routes for learner access
 |--------------------------------------------------------------------------
 */
-Route::prefix('learn')->middleware(['verified'])->group(function () {
+Route::prefix('learn')->middleware(['auth','verified'])->group(function () {
 
     Route::get('/task/{participant}/{sessionable}', [WorkoutController::class, 'task'])->name('taskLearner');
     Route::post('/task/{participant}/{sessionable}', [WorkoutController::class, 'prepared'])->name('taskLearnerPrepared');
@@ -81,7 +84,7 @@ Route::prefix('learn')->middleware(['verified'])->group(function () {
 | Web Routes for mentors and super-visor access
 |--------------------------------------------------------------------------
 */
-Route::prefix('mentor')->middleware(['verified'])->group(function () {
+Route::prefix('mentor')->middleware(['auth','verified'])->group(function () {
 
     Route::get('/learners', [MyLearnerController::class, 'myLearners'])->name('myLearners');
     Route::get('/learner/{user}', [ParticipantController::class, 'participantTerms'])->name('learnerShowTerms');
@@ -91,8 +94,12 @@ Route::prefix('mentor')->middleware(['verified'])->group(function () {
     // Topic Level Comparison (DDA vs Non-DDA)
     Route::get('/topic-comparison', [TopicLevelComparisonController::class, 'index'])->name('topicComparison');
     Route::post('/topic-comparison/data', [TopicLevelComparisonController::class, 'getComparisonData'])->name('analytics.topic-levels-comparison.data');
+    Route::get('/topic-comparison/students', [TopicLevelComparisonController::class, 'getTermParticipants'])->name('api.topic-comparison.students');
     Route::get('/topic-comparison/quizzes', [TopicLevelComparisonController::class, 'getAvailableQuizzes'])->name('api.topic-comparison.quizzes');
     Route::post('/topic-comparison/quiz', [TopicLevelComparisonController::class, 'getQuizComparison'])->name('analytics.topic-levels-quiz-comparison');
+    Route::post('/topic-comparison/dda-metrics', [TopicLevelComparisonController::class, 'getDDAMetrics'])->name('api.topic-comparison.dda-metrics');
+    Route::post('/topic-comparison/spk-recommendations', [TopicLevelComparisonController::class, 'generateSPKRecommendations'])->name('api.topic-comparison.spk-recommendations');
+
 
     Route::resource('mentor-comments', MentorCommentsController::class);
 });
@@ -103,13 +110,14 @@ Route::prefix('mentor')->middleware(['verified'])->group(function () {
 | Web Routes for only Admin Access
 |--------------------------------------------------------------------------
 */
-Route::prefix('panel')->middleware(['verified'])->group(function () {
+Route::prefix('panel')->middleware(['auth','verified'])->group(function () {
 
     // Admin Menu
     Route::get('/menu/education', [CourseManagmentController::class, 'courses'])->name('adminMenuCourse');
     Route::get('/menu/plugins', [CourseManagmentController::class, 'plugins'])->name('adminMenuPlugins');
 
     Route::get('/dashboard', [GeneralController::class, 'dashboard'])->name('dashboard');
+    Route::get('/analytics/topic-level-comparison', [TopicLevelComparisonController::class, 'index'])->name('admin.analytics.topicComparison');
     Route::get('/settings', [SettingController::class, 'index'])->name('settings');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::patch('/setting/{user}', [SettingController::class, 'update'])->name('setting.update');
@@ -171,6 +179,28 @@ Route::prefix('panel')->middleware(['verified'])->group(function () {
     Route::resource('role', RoleController::class)->middleware('role:Super-Admin');
     Route::resource('permission', PermissionController::class)->middleware('role:Super-Admin');
     Route::post('role/permission/{role}', [RoleController::class, 'permission'])->name("role_permissions");
+
+    // Shared analytics routes
+    Route::get('/analytics/course-students', [DDAMetricsController::class, 'getStudents'])->name('api.analytics.course-students');
+    Route::post('/analytics/topic-students', [DDAMetricsController::class, 'getStudentsByTopic'])->name('api.analytics.topic-students');
+
+    // DDA Metrics Evaluation
+    Route::get('/analytics/dda-metrics', [DDAMetricsController::class, 'index'])->name('panel.analytics.dda-metrics');
+    Route::post('/analytics/dda-metrics/data', [DDAMetricsController::class, 'getMetrics'])->name('api.analytics.dda-metrics');
+
+    // DDA Comparison
+    Route::get('/analytics/dda-comparison', [DDAComparisonController::class, 'index'])->name('panel.analytics.dda-comparison');
+    Route::post('/analytics/dda-comparison/data', [DDAComparisonController::class, 'getComparison'])->name('api.analytics.dda-comparison');
+
+    // SPK Recommendations
+    Route::get('/analytics/spk-recommendations', [SPKRecommendationController::class, 'index'])->name('panel.analytics.spk-recommendations');
+    Route::post('/analytics/spk-recommendations/data', [SPKRecommendationController::class, 'getRecommendations'])->name('api.analytics.spk-recommendations');
+    Route::post('/analytics/spk-recommendations/student-report', [SPKRecommendationController::class, 'getStudentReport'])->name('api.analytics.spk-student-report');
 });
+
+
+
+
+
 
 

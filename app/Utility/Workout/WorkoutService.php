@@ -46,20 +46,43 @@ abstract class WorkoutService
         
         // Check if random_question is set
         $n = (int) ($quiz->random_question ?? 0);
+        $questions = collect();
 
         if ($n > 0) {
             // Use N random questions from bank, filtered by topics
-            $query = Question::query();
+            // PRIORITY: Take from recommended difficulty first, then supplement from other difficulties
             
+            $baseQuery = Question::query();
             if ($hasTopics) {
-                $query->whereIn('topic', $topicsArray);
+                $baseQuery->whereIn('topic', $topicsArray);
             }
-            
+
             if ($difficulty) {
-                $query->where('difficulty', $difficulty);
+                // Step 1: Get questions from recommended difficulty
+                $priorityQuestions = (clone $baseQuery)
+                    ->where('difficulty', $difficulty)
+                    ->inRandomOrder()
+                    ->get();
+                
+                $questions = $questions->merge($priorityQuestions);
+                
+                // Step 2: If not enough, supplement from other difficulties
+                if ($questions->count() < $n) {
+                    $supplementQuestions = (clone $baseQuery)
+                        ->where('difficulty', '!=', $difficulty)
+                        ->inRandomOrder()
+                        ->limit($n - $questions->count())
+                        ->get();
+                    
+                    $questions = $questions->merge($supplementQuestions);
+                }
+            } else {
+                // No difficulty specified, just take N random questions
+                $questions = $baseQuery->inRandomOrder()->limit($n)->get();
             }
-            
-            $questions = $query->inRandomOrder()->limit($n)->get();
+
+            // Ensure we have exactly N questions (or less if bank is too small)
+            $questions = $questions->take($n);
         } else {
             // Use attached questions, filtered by topics
             $questions = $quiz->Questions;
@@ -80,24 +103,27 @@ abstract class WorkoutService
                 $questions = Question::all();
             }
 
-            // Apply difficulty filter if specified
+            // Apply difficulty filter with fallback logic
             if ($difficulty) {
                 $filtered = collect($questions)->filter(function ($q) use ($difficulty) {
                     return isset($q->difficulty) ? ($q->difficulty == $difficulty) : false;
                 })->values();
 
-                if ($filtered->count() > 0) {
+                // If filtered result is empty or too small, use all questions
+                if ($filtered->count() === 0) {
+                    $questions = collect($questions);
+                } else {
                     $questions = $filtered;
                 }
+            } else {
+                $questions = collect($questions);
             }
 
             // Apply shuffle/sort
             if ((int)($quiz->is_shuffle ?? 0) === 1) {
-                $questions = $questions instanceof \Illuminate\Support\Collection ? $questions->shuffle()->values() : collect($questions)->shuffle()->values();
+                $questions = $questions->shuffle()->values();
             } else {
-                if ($questions instanceof \Illuminate\Support\Collection) {
-                    $questions = $questions->sortBy(function($q){ return optional($q->pivot)->order ?? 0; })->values();
-                }
+                $questions = $questions->sortBy(function($q){ return optional($q->pivot)->order ?? 0; })->values();
             }
         }
 
@@ -112,7 +138,7 @@ abstract class WorkoutService
         return null;
     }
 
-    public static function recomputeScore(Workout $workout): int
+        public static function recomputeScore(Workout $workout): int
     {
         $logs = $workout->WorkOutQuiz;
         if (!$logs || $logs->count() === 0) {
@@ -141,3 +167,4 @@ abstract class WorkoutService
         return $score;
     }
 }
+
