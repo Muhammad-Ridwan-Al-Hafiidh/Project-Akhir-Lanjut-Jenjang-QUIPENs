@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
 
             QuizSeed::class,
             QuestionSeed::class,
+            StackBinaryTreeQuestionSeeder::class,
             
             // EducationSeeder::class,
             ParticipantSeeder::class,
@@ -37,3 +38,4 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 }
+

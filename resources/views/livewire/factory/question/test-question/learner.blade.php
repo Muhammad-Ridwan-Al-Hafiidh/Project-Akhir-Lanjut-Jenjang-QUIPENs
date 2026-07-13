@@ -5,7 +5,7 @@
             <h6 class="m-0 font-weight-bold text-primary">{{ $question->title }}</h6>
         </div>
         <div class="card-body">
-            <form class="workout_questions" id="question-{{ $question->id }}" method="post" action="{{ route("quizWorkout") }}">
+            <form class="workout_questions" id="question-{{ $question->id }}" method="post" action="{{ route("quizWorkout") }}" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();return false}">
                 @csrf
                 
                 <input type="hidden" value="{{ $question->id }}" name="question_id">

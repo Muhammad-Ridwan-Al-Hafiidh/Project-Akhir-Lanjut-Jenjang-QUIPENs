@@ -143,6 +143,16 @@
                 <span class="badge bg-secondary" id="restart-count">0 data</span>
             </div>
             <div class="card-body">
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="student-search" class="form-control" placeholder="Cari mahasiswa...">
+                    <button class="btn btn-sm btn-outline-secondary" id="select-all-students">Pilih Semua</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="clear-all-students">Hapus Pilihan</button>
+                    <span class="input-group-text bg-white fw-bold" id="student-filter-count">0</span>
+                </div>
+                <div id="student-list" class="d-flex flex-wrap gap-1 mb-3" style="min-height: 40px;">
+                    <!-- akan diisi JS -->
+                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover table-sm align-middle" id="restartResultsTable">
                         <thead class="table-light">
@@ -214,6 +224,17 @@
         const loadingSpinner = document.getElementById('loading-spinner');
         const errorDiv = document.getElementById('error-msg');
         const resultsDiv = document.getElementById('results');
+        const searchInput = document.getElementById('student-search');
+        const studentList = document.getElementById('student-list');
+        const selectAllStudents = document.getElementById('select-all-students');
+        const clearAllStudents = document.getElementById('clear-all-students');
+        const restartBody = document.getElementById('restartResultsBody');
+        const restartCount = document.getElementById('restart-count');
+        const noRestart = document.getElementById('no-restart-data');
+
+        // --- state ---
+        let excludedStudents = new Set();
+        let allRestartResults = [];
 
         // --- update topic selection info ---
         function updateTopicInfo() {
@@ -242,6 +263,24 @@
         });
         checkboxes.forEach(cb => cb.addEventListener('change', updateTopicInfo));
         updateTopicInfo();
+
+        // --- student search ---
+        if (searchInput) searchInput.addEventListener('input', renderStudentList);
+        if (selectAllStudents) selectAllStudents.addEventListener('click', function() {
+            excludedStudents = new Set();
+            if (studentList) studentList.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+            renderStudentList();
+            applyStudentFilter();
+        });
+        if (clearAllStudents) clearAllStudents.addEventListener('click', function() {
+            allRestartResults.forEach(r => {
+                if (r.student_id) excludedStudents.add(r.student_id);
+            });
+            if (studentList) studentList.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+            renderStudentList();
+            applyStudentFilter();
+            if (searchInput) searchInput.value = '';
+        });
 
         // --- analyze ---
         analyzeBtn.addEventListener('click', analyze);
@@ -285,6 +324,116 @@
                 loadingSpinner.style.display = 'none';
                 analyzeBtn.disabled = false;
             }
+        }
+
+        // --- student filter functions ---
+        function renderStudentList() {
+            if (!studentList) return;
+            const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            const students = [];
+            const seen = new Set();
+            allRestartResults.forEach(r => {
+                if (r.student_id && !seen.has(r.student_id)) {
+                    seen.add(r.student_id);
+                    students.push({ id: r.student_id, name: r.student_name });
+                }
+            });
+
+            studentList.innerHTML = '';
+
+            if (!q) {
+                const selected = students.filter(s => !excludedStudents.has(s.id));
+                if (selected.length > 0) {
+                    const badgeContainer = document.createElement('div');
+                    badgeContainer.className = 'd-flex flex-wrap gap-1';
+                    selected.forEach(s => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-primary text-white d-inline-flex align-items-center gap-1';
+                        badge.style.cursor = 'pointer';
+                        badge.textContent = s.name;
+                        const x = document.createElement('i');
+                        x.className = 'fas fa-times ms-1';
+                        x.style.pointerEvents = 'none';
+                        badge.appendChild(x);
+                        badge.onclick = function() { excludedStudents.add(s.id); renderStudentList(); applyStudentFilter(); };
+                        badgeContainer.appendChild(badge);
+                    });
+                    studentList.appendChild(badgeContainer);
+                } else {
+                    studentList.innerHTML = '<p class="text-muted text-center w-100 mb-0">Belum ada mahasiswa dipilih. Ketik nama untuk mencari.</p>';
+                    applyStudentFilter();
+                    return;
+                }
+            }
+
+            if (q) {
+                const shown = [];
+                students.forEach(s => {
+                    if (!s.name.toLowerCase().includes(q)) return;
+                    shown.push(s);
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'form-check form-check-inline mb-0';
+                    const cb = document.createElement('input');
+                    cb.className = 'form-check-input student-checkbox';
+                    cb.type = 'checkbox';
+                    cb.value = s.id;
+                    cb.checked = !excludedStudents.has(s.id);
+                    cb.dataset.name = s.name;
+                    cb.addEventListener('change', function() {
+                        if (this.checked) excludedStudents.delete(parseInt(this.value));
+                        else excludedStudents.add(parseInt(this.value));
+                        applyStudentFilter();
+                        renderStudentList();
+                    });
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.textContent = s.name;
+                    wrapper.appendChild(cb);
+                    wrapper.appendChild(label);
+                    studentList.appendChild(wrapper);
+                });
+                if (shown.length === 0) {
+                    studentList.innerHTML += '<p class="text-muted text-center w-100 mt-2">Tidak ada mahasiswa sesuai pencarian.</p>';
+                }
+            }
+
+            applyStudentFilter();
+        }
+
+        function applyStudentFilter() {
+            let ids;
+            const domCheckboxes = studentList ? studentList.querySelectorAll('.student-checkbox') : [];
+            if (domCheckboxes.length > 0) {
+                ids = new Set(Array.from(studentList.querySelectorAll('.student-checkbox:checked')).map(cb => parseInt(cb.value)));
+                excludedStudents.forEach(id => ids.delete(id));
+            } else {
+                const students = [];
+                const seen = new Set();
+                allRestartResults.forEach(r => {
+                    if (r.student_id && !seen.has(r.student_id)) {
+                        seen.add(r.student_id);
+                        students.push(r.student_id);
+                    }
+                });
+                ids = new Set(students);
+                excludedStudents.forEach(id => ids.delete(id));
+            }
+            renderRestartTable(allRestartResults.filter(r => r.student_id && ids.has(r.student_id)));
+            updateStudentCount();
+        }
+
+        function updateStudentCount() {
+            const students = [];
+            const seen = new Set();
+            allRestartResults.forEach(r => {
+                if (r.student_id && !seen.has(r.student_id)) {
+                    seen.add(r.student_id);
+                    students.push(r.student_id);
+                }
+            });
+            const count = students.length - excludedStudents.size;
+            const el = document.getElementById('student-filter-count');
+            if (el) el.textContent = count + '/' + students.length;
         }
 
         // --- display results ---
@@ -388,54 +537,63 @@
             }
 
             // 3. Restart Results
-            const restartBody = document.getElementById('restartResultsBody');
-            const restartCount = document.getElementById('restart-count');
-            const noRestart = document.getElementById('no-restart-data');
+            allRestartResults = data.restart_results || [];
+            excludedStudents = new Set();
+            if (searchInput) searchInput.value = '';
 
-            if (data.restart_results && data.restart_results.length > 0) {
-                noRestart.style.display = 'none';
-                let htmlR = '';
-                data.restart_results.forEach(r => {
-                    const modeBadge = r.used_dda ? 'bg-info' : 'bg-secondary';
-                    const modeText = r.used_dda ? 'DDA' : 'Non-DDA';
-                    const diffBadge = r.difficulty === 'easy' ? 'bg-success' : (r.difficulty === 'medium' ? 'bg-warning' : 'bg-danger');
-                    // topic levels
-                    let levels = '-';
-                    let topicData = r.topic_levels;
-                    if (typeof topicData === 'string') {
-                        try { topicData = JSON.parse(topicData); } catch(e) { topicData = null; }
-                    }
-                    if (topicData && typeof topicData === 'object') {
-                        const entries = Object.entries(topicData);
-                        if (entries.length) {
-                            levels = entries.map(([t, l]) => {
-                                const lv = parseInt(l);
-                                let label = '', cls = '';
-                                if (lv >= 3) { label = 'Kuat'; cls = 'bg-success'; }
-                                else if (lv >= 1) { label = 'Sedang'; cls = 'bg-warning text-dark'; }
-                                else { label = 'Rendah'; cls = 'bg-danger'; }
-                                return `<span class="badge ${cls} text-white me-1">${t}: ${label} (level ${lv})</span>`;
-                            }).join(' ');
-                        }
-                    }
-                    htmlR += `
-                        <tr>
-                            <td><strong>${r.student_name}</strong></td>
-                            <td class="text-center"><span class="fw-bold">${r.score}</span></td>
-                            <td class="text-center"><span class="badge ${modeBadge} text-white">${modeText}</span></td>
-                            <td class="text-center"><span class="badge ${diffBadge} text-white">${r.difficulty}</span></td>
-                            <td>${levels}</td>
-                            <td class="text-center">${r.created_at}</td>
-                        </tr>
-                    `;
-                });
-                restartBody.innerHTML = htmlR;
-                restartCount.textContent = data.restart_results.length + ' data';
+            if (allRestartResults.length > 0) {
+                renderStudentList();
             } else {
                 noRestart.style.display = 'block';
                 restartBody.innerHTML = '';
                 restartCount.textContent = '0 data';
             }
+        }
+
+        function renderRestartTable(results) {
+            if (!results || results.length === 0) {
+                noRestart.style.display = 'block';
+                restartBody.innerHTML = '';
+                restartCount.textContent = '0 data';
+                return;
+            }
+            noRestart.style.display = 'none';
+            restartCount.textContent = results.length + ' data';
+            let htmlR = '';
+            results.forEach(r => {
+                const modeBadge = r.used_dda ? 'bg-info' : 'bg-secondary';
+                const modeText = r.used_dda ? 'DDA' : 'Non-DDA';
+                const diffBadge = r.difficulty === 'easy' ? 'bg-success' : (r.difficulty === 'medium' ? 'bg-warning' : 'bg-danger');
+                let levels = '-';
+                let topicData = r.topic_levels;
+                if (typeof topicData === 'string') {
+                    try { topicData = JSON.parse(topicData); } catch(e) { topicData = null; }
+                }
+                if (topicData && typeof topicData === 'object') {
+                    const entries = Object.entries(topicData);
+                    if (entries.length) {
+                        levels = entries.map(([t, l]) => {
+                            const lv = parseInt(l);
+                            let label = '', cls = '';
+                            if (lv >= 3) { label = 'Kuat'; cls = 'bg-success'; }
+                            else if (lv >= 1) { label = 'Sedang'; cls = 'bg-warning text-dark'; }
+                            else { label = 'Rendah'; cls = 'bg-danger'; }
+                            return `<span class="badge ${cls} text-white me-1">${t}: ${label} (level ${lv})</span>`;
+                        }).join(' ');
+                    }
+                }
+                htmlR += `
+                    <tr>
+                        <td><strong>${r.student_name}</strong></td>
+                        <td class="text-center"><span class="fw-bold">${r.score}</span></td>
+                        <td class="text-center"><span class="badge ${modeBadge} text-white">${modeText}</span></td>
+                        <td class="text-center"><span class="badge ${diffBadge} text-white">${r.difficulty}</span></td>
+                        <td>${levels}</td>
+                        <td class="text-center">${r.created_at}</td>
+                    </tr>
+                `;
+            });
+            restartBody.innerHTML = htmlR;
         }
     });
 </script>

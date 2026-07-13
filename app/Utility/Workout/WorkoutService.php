@@ -40,76 +40,110 @@ abstract class WorkoutService
             return [];
         }
 
-        // Get topics for this quiz
         $topicsArray = $quiz->getTopicsArray();
         $hasTopics = !empty($topicsArray);
-        
-        // Check if random_question is set
         $n = (int) ($quiz->random_question ?? 0);
+        $difficultyCounts = [
+            'easy' => (int) ($quiz->easy_questions_count ?? 0),
+            'medium' => (int) ($quiz->medium_questions_count ?? 0),
+            'hard' => (int) ($quiz->hard_questions_count ?? 0),
+        ];
+        $hasDifficultyCounts = array_sum($difficultyCounts) > 0;
         $questions = collect();
 
-        if ($n > 0) {
-            // Use N random questions from bank, filtered by topics
-            // PRIORITY: Take from recommended difficulty first, then supplement from other difficulties
-            
+        if ($hasDifficultyCounts) {
+            $baseQuery = Question::query();
+            if ($hasTopics) {
+                $baseQuery->whereIn('topic', $topicsArray);
+            }
+
+            $selectedIds = [];
+            foreach (['easy', 'medium', 'hard'] as $level) {
+                $count = $difficultyCounts[$level];
+                if ($count <= 0) {
+                    continue;
+                }
+
+                $priorityQuestions = (clone $baseQuery)
+                    ->where('difficulty', $level)
+                    ->inRandomOrder()
+                    ->get();
+
+                $picked = $priorityQuestions->take($count);
+                $questions = $questions->merge($picked);
+                $selectedIds = array_merge($selectedIds, $picked->pluck('id')->all());
+
+                if ($picked->count() < $count) {
+                    $remaining = $count - $picked->count();
+                    $supplement = (clone $baseQuery)
+                        ->whereNotIn('id', $selectedIds)
+                        ->inRandomOrder()
+                        ->limit($remaining)
+                        ->get();
+                    $questions = $questions->merge($supplement);
+                    $selectedIds = array_merge($selectedIds, $supplement->pluck('id')->all());
+                }
+            }
+
+            if ($questions->count() === 0) {
+                $questions = (clone $baseQuery)->inRandomOrder()->limit(array_sum($difficultyCounts))->get();
+            }
+
+            if ((int) ($quiz->is_shuffle ?? 0) === 1) {
+                $questions = $questions->unique('id')->shuffle()->values();
+            } else {
+                $questions = $questions->unique('id')->values();
+            }
+        } elseif ($n > 0) {
             $baseQuery = Question::query();
             if ($hasTopics) {
                 $baseQuery->whereIn('topic', $topicsArray);
             }
 
             if ($difficulty) {
-                // Step 1: Get questions from recommended difficulty
                 $priorityQuestions = (clone $baseQuery)
                     ->where('difficulty', $difficulty)
                     ->inRandomOrder()
                     ->get();
-                
+
                 $questions = $questions->merge($priorityQuestions);
-                
-                // Step 2: If not enough, supplement from other difficulties
+
                 if ($questions->count() < $n) {
                     $supplementQuestions = (clone $baseQuery)
                         ->where('difficulty', '!=', $difficulty)
                         ->inRandomOrder()
                         ->limit($n - $questions->count())
                         ->get();
-                    
+
                     $questions = $questions->merge($supplementQuestions);
                 }
             } else {
-                // No difficulty specified, just take N random questions
                 $questions = $baseQuery->inRandomOrder()->limit($n)->get();
             }
 
-            // Ensure we have exactly N questions (or less if bank is too small)
             $questions = $questions->take($n);
         } else {
-            // Use attached questions, filtered by topics
             $questions = $quiz->Questions;
-            
+
             if ($hasTopics) {
-                $questions = $questions->filter(function($q) use ($topicsArray) {
+                $questions = $questions->filter(function ($q) use ($topicsArray) {
                     return in_array($q->topic, $topicsArray);
                 })->values();
             }
 
-            // Fallback to question bank if no attached questions remain
             if ($questions->count() === 0 && $hasTopics) {
                 $questions = Question::whereIn('topic', $topicsArray)->get();
             }
 
-            // Final fallback: all questions
             if ($questions->count() === 0) {
                 $questions = Question::all();
             }
 
-            // Apply difficulty filter with fallback logic
             if ($difficulty) {
                 $filtered = collect($questions)->filter(function ($q) use ($difficulty) {
                     return isset($q->difficulty) ? ($q->difficulty == $difficulty) : false;
                 })->values();
 
-                // If filtered result is empty or too small, use all questions
                 if ($filtered->count() === 0) {
                     $questions = collect($questions);
                 } else {
@@ -119,11 +153,12 @@ abstract class WorkoutService
                 $questions = collect($questions);
             }
 
-            // Apply shuffle/sort
-            if ((int)($quiz->is_shuffle ?? 0) === 1) {
+            if ((int) ($quiz->is_shuffle ?? 0) === 1) {
                 $questions = $questions->shuffle()->values();
             } else {
-                $questions = $questions->sortBy(function($q){ return optional($q->pivot)->order ?? 0; })->values();
+                $questions = $questions->sortBy(function ($q) {
+                    return optional($q->pivot)->order ?? 0;
+                })->values();
             }
         }
 
@@ -138,7 +173,7 @@ abstract class WorkoutService
         return null;
     }
 
-        public static function recomputeScore(Workout $workout): int
+    public static function recomputeScore(Workout $workout): int
     {
         $logs = $workout->WorkOutQuiz;
         if (!$logs || $logs->count() === 0) {
@@ -159,7 +194,7 @@ abstract class WorkoutService
 
         $workout->update([
             'score' => $score,
-            'is_completed' => true, // consider finished when logs exist
+            'is_completed' => true,
             'is_mentor' => false,
             'date_get_score' => now(),
         ]);
@@ -167,4 +202,3 @@ abstract class WorkoutService
         return $score;
     }
 }
-

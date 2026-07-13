@@ -21,7 +21,8 @@ class RubricActivity extends Component
      */
     public function render()
     {
-        $rubrics = Rubric::paginate();
+        $rubrics = Rubric::paginate(10, ['*'], 'rubricPage');
         return view('livewire.box.rubric-activity', compact('rubrics'));
     }
 }
+

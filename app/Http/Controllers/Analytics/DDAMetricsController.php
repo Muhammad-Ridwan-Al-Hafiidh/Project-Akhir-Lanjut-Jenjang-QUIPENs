@@ -132,6 +132,7 @@ class DDAMetricsController extends Controller
         foreach ($restartLogs as $log) {
             $pid = $log->workout->participant_id ?? null;
             $restartResults[] = [
+                'student_id' => $pid,
                 'student_name' => $pid ? ($userMap[$pid] ?? 'Unknown') : 'Unknown',
                 'score' => (float) ($log->previous_score ?? 0),
                 'used_dda' => (bool) $log->used_dda,

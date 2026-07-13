@@ -104,13 +104,45 @@
                             <label for="random_question" class="form-label font-weight-bold">{{ __("Random Question Count") }}</label>
                             <input name="random_question" type="number" class="form-control @error('random_question') is-invalid @enderror" id="random_question"
                                 placeholder="{{ __('0 = all questions') }}" value="{{ $quiz->random_question ?? '0' }}">
+                            <small class="text-muted d-block mt-1">{{ __('Jika mengisi jumlah per level di bawah, total akan dihitung otomatis dari hard + medium + easy.') }}</small>
                             @error('random_question')
                                 <span class="invalid-feedback" role="alert">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
 
-                    <!-- Row 5: Topics (Full width) -->
+                    <!-- Row 5: Random by difficulty -->
+                    <div class="form-group row">
+                        <div class="col-sm-4 mb-3">
+                            <label for="easy_questions_count" class="form-label font-weight-bold">{{ __("Easy Questions") }}</label>
+                            <input name="easy_questions_count" type="number" min="0" max="100"
+                                class="form-control @error('easy_questions_count') is-invalid @enderror" id="easy_questions_count"
+                                placeholder="0" value="{{ $quiz->easy_questions_count ?? 0 }}">
+                            @error('easy_questions_count')
+                                <span class="invalid-feedback" role="alert">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="col-sm-4 mb-3">
+                            <label for="medium_questions_count" class="form-label font-weight-bold">{{ __("Medium Questions") }}</label>
+                            <input name="medium_questions_count" type="number" min="0" max="100"
+                                class="form-control @error('medium_questions_count') is-invalid @enderror" id="medium_questions_count"
+                                placeholder="0" value="{{ $quiz->medium_questions_count ?? 0 }}">
+                            @error('medium_questions_count')
+                                <span class="invalid-feedback" role="alert">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="col-sm-4 mb-3">
+                            <label for="hard_questions_count" class="form-label font-weight-bold">{{ __("Hard Questions") }}</label>
+                            <input name="hard_questions_count" type="number" min="0" max="100"
+                                class="form-control @error('hard_questions_count') is-invalid @enderror" id="hard_questions_count"
+                                placeholder="0" value="{{ $quiz->hard_questions_count ?? 0 }}">
+                            @error('hard_questions_count')
+                                <span class="invalid-feedback" role="alert">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Topics (Full width) -->
                     <div class="form-group">
                         <label for="topics" class="form-label font-weight-bold">{{ __("Select Topics") }}</label>
                         <select name="topics[]" id="topics" multiple style="width: 100%;">
@@ -127,7 +159,7 @@
                         @enderror
                     </div>
 
-                    <!-- Row 6: Description (Full width) -->
+                    <!-- Row 7: Description (Full width) -->
                     <div class="form-group">
                         <label for="description" class="form-label font-weight-bold">{{ __("Description") }}</label>
                         <textarea name="description" class="form-control @error('description') is-invalid @enderror editor" id="description"

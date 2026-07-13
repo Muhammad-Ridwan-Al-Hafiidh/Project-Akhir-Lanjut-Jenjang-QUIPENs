@@ -7,6 +7,7 @@ use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\QuizQuestion;
 use App\Traits\Sequence;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class QuizController extends Controller
@@ -21,13 +22,13 @@ class QuizController extends Controller
     {
         $this->authorize('quiz.index');
         $quizes = Quiz::paginate();
-        return view("contents.admin.quiz.index", compact("quizes"));
+        return view("contents.admin.quiz.index", compact('quizes'));
     }
 
     public function create()
     {
         $this->authorize('quiz.create');
-        $allTopics = \App\Models\Question::distinct()->pluck('topic')->toArray();
+        $allTopics = Question::distinct()->pluck('topic')->toArray();
         $show_question = $this->show_question;
         return view('contents.admin.quiz.form', compact('show_question', 'allTopics'));
     }
@@ -35,23 +36,10 @@ class QuizController extends Controller
     public function store(QuizRequest $request)
     {
         $this->authorize('quiz.create');
-        
-        $topics = $request->input('topics', []);
-        $data = $request->except('topics');
-        
-        $quiz = Quiz::create($data);
-        
-        if (!empty($topics)) {
-            foreach ($topics as $topic) {
-                DB::table('quiz_topics')->insert([
-                    'quiz_id' => $quiz->id,
-                    'topic' => $topic,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-        }
-        
+
+        $quiz = Quiz::create($this->prepareQuizData($request));
+        $this->syncQuizTopics($quiz, $request->input('topics', []));
+
         return redirect()
             ->route("quiz.index")
             ->with('success', __('quiz created successfully'));
@@ -66,7 +54,7 @@ class QuizController extends Controller
     public function edit(Quiz $quiz)
     {
         $this->authorize('quiz.edit');
-        $allTopics = \App\Models\Question::distinct()->pluck('topic')->toArray();
+        $allTopics = Question::distinct()->pluck('topic')->toArray();
         $show_question = $this->show_question;
         return view('contents.admin.quiz.form', compact('quiz', 'show_question', 'allTopics'));
     }
@@ -74,25 +62,11 @@ class QuizController extends Controller
     public function update(QuizRequest $request, Quiz $quiz)
     {
         $this->authorize('quiz.edit');
-        
-        $topics = $request->input('topics', []);
-        $data = $request->except('topics');
-        
-        $quiz->update($data);
-        
+
+        $quiz->update($this->prepareQuizData($request));
         DB::table('quiz_topics')->where('quiz_id', $quiz->id)->delete();
-        
-        if (!empty($topics)) {
-            foreach ($topics as $topic) {
-                DB::table('quiz_topics')->insert([
-                    'quiz_id' => $quiz->id,
-                    'topic' => $topic,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-        }
-        
+        $this->syncQuizTopics($quiz, $request->input('topics', []));
+
         return redirect()
             ->route("quiz.index")
             ->with('warning', __('quiz updated successfully'));
@@ -146,5 +120,45 @@ class QuizController extends Controller
         $this->authorize('quiz.delete');
         $quizQuestion->delete();
         return redirect()->back();
+    }
+
+    protected function prepareQuizData(QuizRequest $request): array
+    {
+        $data = $request->except('topics');
+
+        $easy = $this->normalizeCount($request->input('easy_questions_count'));
+        $medium = $this->normalizeCount($request->input('medium_questions_count'));
+        $hard = $this->normalizeCount($request->input('hard_questions_count'));
+        $difficultyTotal = $easy + $medium + $hard;
+
+        $data['easy_questions_count'] = $easy;
+        $data['medium_questions_count'] = $medium;
+        $data['hard_questions_count'] = $hard;
+        $data['random_question'] = $difficultyTotal > 0
+            ? $difficultyTotal
+            : $this->normalizeCount($request->input('random_question'));
+
+        return $data;
+    }
+
+    protected function normalizeCount($value): int
+    {
+        return max(0, (int) $value);
+    }
+
+    protected function syncQuizTopics(Quiz $quiz, array $topics): void
+    {
+        if (empty($topics)) {
+            return;
+        }
+
+        foreach ($topics as $topic) {
+            DB::table('quiz_topics')->insert([
+                'quiz_id' => $quiz->id,
+                'topic' => $topic,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
     }
 }

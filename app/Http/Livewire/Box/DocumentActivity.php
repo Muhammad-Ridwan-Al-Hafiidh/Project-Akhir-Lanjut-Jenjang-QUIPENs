@@ -22,9 +22,10 @@ class DocumentActivity extends Component
      */
     public function render()
     {
-        $documents =  Document::paginate();
+        $documents =  Document::paginate(10, ['*'], 'documentPage');
         return view('livewire.box.document-activity', compact([
             'documents'
         ]));
     }
 }
+

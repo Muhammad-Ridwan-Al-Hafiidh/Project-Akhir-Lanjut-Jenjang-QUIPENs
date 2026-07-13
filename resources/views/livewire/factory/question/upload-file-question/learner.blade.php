@@ -8,7 +8,9 @@
             <form class="workout_questions" 
                 enctype="multipart/form-data"
                 id="question-{{ $question->id }}" 
-                method="post" action="{{ route("quizWorkout") }}">
+                method="post" action="{{ route("quizWorkout") }}"
+                autocomplete="off"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();return false}">
                 @csrf 
                 
                 <input type="hidden" value="{{ $question->id }}" name="question_id">

@@ -73,10 +73,12 @@
             </h6>
         </div>
         <div class="card-body">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <div class="input-group mb-2">
+                <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="student-search" class="form-control" placeholder="Cari mahasiswa...">
                 <button class="btn btn-sm btn-outline-secondary" id="select-all-students">Pilih Semua</button>
                 <button class="btn btn-sm btn-outline-secondary" id="clear-all-students">Hapus Pilihan</button>
-                <span class="badge bg-secondary ms-2" id="student-filter-count">0 dipilih</span>
+                <span class="input-group-text bg-white fw-bold" id="student-filter-count">0</span>
             </div>
             <div id="student-list" class="d-flex flex-wrap gap-2" style="max-height: 150px; overflow-y: auto; padding: 8px 4px; border: 1px solid #dee2e6; border-radius: 0.25rem;">
                 <!-- diisi JS -->
@@ -257,7 +259,7 @@
 
         // state
         let allData = null;
-        let currentFiltered = [];
+        let excludedStudents = new Set();
 
         // --- topic selection ---
         function updateTopicInfo() {
@@ -277,6 +279,10 @@
         selectAllTopics.addEventListener('click', () => { topicCheckboxes.forEach(cb => cb.checked = true); updateTopicInfo(); });
         clearAllTopics.addEventListener('click', () => { topicCheckboxes.forEach(cb => cb.checked = false); updateTopicInfo(); });
         updateTopicInfo();
+
+        // --- search student ---
+        const searchInput = document.getElementById('student-search');
+        if (searchInput) searchInput.addEventListener('input', renderStudentList);
 
         // --- analyze ---
         analyzeBtn.addEventListener('click', analyze);
@@ -322,63 +328,114 @@
             }
         }
 
-        // --- render students ---
-        function renderStudents(data) {
-            const container = studentList;
-            container.innerHTML = '';
-            if (!data.students || data.students.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center w-100">Tidak ada mahasiswa.</p>';
-                return;
-            }
-            data.students.forEach(s => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'form-check form-check-inline mb-0';
-                const cb = document.createElement('input');
-                cb.className = 'form-check-input student-checkbox';
-                cb.type = 'checkbox';
-                cb.value = s.id;
-                cb.checked = true;
-                cb.dataset.name = s.name;
-                cb.addEventListener('change', refreshDisplay);
-                const label = document.createElement('label');
-                label.className = 'form-check-label';
-                label.textContent = s.name;
-                wrapper.appendChild(cb);
-                wrapper.appendChild(label);
-                container.appendChild(wrapper);
-            });
-            studentSection.style.display = 'block';
+        // --- render students with badge+search pattern ---
+        function renderStudentList() {
+            if (!allData || !allData.students) return;
+            const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            studentList.innerHTML = '';
 
-            // select/deselect all students
+            // Show selected badges on top (only when not searching)
+            if (!q) {
+                const selected = allData.students.filter(s => !excludedStudents.has(s.id));
+                if (selected.length > 0) {
+                    const badgeContainer = document.createElement('div');
+                    badgeContainer.className = 'd-flex flex-wrap gap-1';
+                    selected.forEach(s => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-primary text-white d-inline-flex align-items-center gap-1';
+                        badge.style.cursor = 'pointer';
+                        badge.textContent = s.name;
+                        const x = document.createElement('i');
+                        x.className = 'fas fa-times ms-1';
+                        x.style.pointerEvents = 'none';
+                        badge.appendChild(x);
+                        badge.onclick = function() { excludedStudents.add(s.id); applyStudentFilter(); };
+                        badgeContainer.appendChild(badge);
+                    });
+                    studentList.appendChild(badgeContainer);
+                } else {
+                    studentList.innerHTML = '<p class="text-muted text-center w-100">Belum ada mahasiswa dipilih. Ketik nama untuk mencari dan memilih.</p>';
+                    applyStudentFilter();
+                    return;
+                }
+            }
+
+            // Show search results (checkboxes)
+            if (q) {
+                const shown = [];
+                allData.students.forEach(s => {
+                    if (!s.name.toLowerCase().includes(q)) return;
+                    shown.push(s);
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'form-check form-check-inline mb-0';
+                    const cb = document.createElement('input');
+                    cb.className = 'form-check-input student-checkbox';
+                    cb.type = 'checkbox';
+                    cb.value = s.id;
+                    cb.checked = !excludedStudents.has(s.id);
+                    cb.dataset.name = s.name;
+                    cb.addEventListener('change', function() {
+                        if (this.checked) excludedStudents.delete(parseInt(this.value));
+                        else excludedStudents.add(parseInt(this.value));
+                        applyStudentFilter();
+                        renderStudentList();
+                    });
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.textContent = s.name;
+                    wrapper.appendChild(cb);
+                    wrapper.appendChild(label);
+                    studentList.appendChild(wrapper);
+                });
+                if (shown.length === 0) {
+                    studentList.innerHTML += '<p class="text-muted text-center w-100 mt-2">Tidak ada mahasiswa sesuai pencarian.</p>';
+                }
+            }
+
+            applyStudentFilter();
+        }
+
+        function renderStudents(data) {
+            excludedStudents = new Set();
+            if (searchInput) searchInput.value = '';
+            studentSection.style.display = 'block';
+            renderStudentList();
+
             document.getElementById('select-all-students').onclick = function() {
+                excludedStudents = new Set();
                 document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
-                updateStudentCount();
-                refreshDisplay();
+                renderStudentList();
             };
             document.getElementById('clear-all-students').onclick = function() {
+                allData.students.forEach(s => excludedStudents.add(s.id));
                 document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
-                updateStudentCount();
-                refreshDisplay();
+                renderStudentList();
+                if (searchInput) searchInput.value = '';
             };
+            applyStudentFilter();
+        }
+
+        function applyStudentFilter() {
+            let ids;
+            const domCheckboxes = document.querySelectorAll('.student-checkbox');
+            if (domCheckboxes.length > 0) {
+                ids = new Set(Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => parseInt(cb.value)));
+                excludedStudents.forEach(id => ids.delete(id));
+            } else {
+                ids = new Set(allData.students.map(s => s.id));
+                excludedStudents.forEach(id => ids.delete(id));
+            }
+
+            const filtered = allData.recommendations.filter(r => ids.has(r.student_id));
+            renderTable(filtered);
+            updateSummaryCards(filtered);
             updateStudentCount();
         }
 
         function updateStudentCount() {
-            const checked = document.querySelectorAll('.student-checkbox:checked');
-            const total = document.querySelectorAll('.student-checkbox').length;
-            document.getElementById('student-filter-count').textContent = checked.length + ' dipilih dari ' + total;
-        }
-
-        // --- refresh display (filter) ---
-        function refreshDisplay() {
-            const selectedIds = new Set(
-                Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => parseInt(cb.value))
-            );
-            const filtered = allData.recommendations.filter(r => selectedIds.has(r.student_id));
-            currentFiltered = filtered;
-            renderTable(filtered);
-            updateSummaryCards(filtered);
-            updateStudentCount();
+            const total = allData ? allData.students.length : 0;
+            const count = total - excludedStudents.size;
+            document.getElementById('student-filter-count').textContent = count + '/' + total;
         }
 
         // --- render summary cards (overall) ---
@@ -728,7 +785,7 @@
 
         // --- render all (init) ---
         function renderAllData(data) {
-            refreshDisplay();
+            applyStudentFilter();
         }
 
         // --- export CSV (all data) ---

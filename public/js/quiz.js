@@ -7,6 +7,14 @@ $(document).ready(function () {
     }
     $("#btnQuestions .btnQuestion:first").addClass("process-step-active");
 
+    // Prevent Enter key from submitting forms on page load (autofill safety)
+    $(document).on('keydown', '.workout_questions input[type="text"], .workout_questions input[type="search"], .workout_questions textarea', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            return false;
+        }
+    });
+
     $("#saveAndClose").click(function (event) {
         event.preventDefault();
 
@@ -92,7 +100,7 @@ $(document).on('submit', '.workout_questions', function(e) {
       success: function(resp){
         if (typeof style !== 'undefined' && style === 'StepByStep') {
           var $currentBtn = $('#btnQuestion-' + questionId);
-          var $nextBtn = $currentBtn.parent().next().find('.btnQuestion');
+          var $nextBtn = $currentBtn.nextAll('.btnQuestion').first();
           if ($nextBtn.length) { $nextBtn.trigger('click'); }
         }
       }
@@ -102,7 +110,7 @@ $(document).on('submit', '.workout_questions', function(e) {
     $.post(url, data, function(resp){
       if (typeof style !== 'undefined' && style === 'StepByStep') {
         var $currentBtn = $('#btnQuestion-' + questionId);
-        var $nextBtn = $currentBtn.parent().next().find('.btnQuestion');
+        var $nextBtn = $currentBtn.nextAll('.btnQuestion').first();
         if ($nextBtn.length) { $nextBtn.trigger('click'); }
       }
     });

@@ -22,9 +22,10 @@ class FileActivity extends Component
      */
     public function render()
     {
-        $files =  File::paginate();
+        $files =  File::paginate(10, ['*'], 'filePage');
         return view('livewire.box.file-activity', compact([
             'files'
         ]));
     }
 }
+

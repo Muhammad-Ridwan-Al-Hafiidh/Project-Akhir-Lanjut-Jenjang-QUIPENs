@@ -13,11 +13,25 @@ class QuestionController extends Controller
      *
      * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\View\Factory
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('question.index');
-        $questions = Question::with('QuestionType')->orderby('created_at', 'desc')->paginate();
-        return view("contents.admin.question.index", compact("questions"));
+
+        $query = Question::with('QuestionType')->orderby('created_at', 'desc');
+
+        if ($request->filled('topic')) {
+            $query->whereIn('topic', (array) $request->topic);
+        }
+        if ($request->filled('difficulty')) {
+            $query->whereIn('difficulty', (array) $request->difficulty);
+        }
+
+        $questions = $query->paginate()->appends($request->only(['topic', 'difficulty']));
+
+        $topics = Question::whereNotNull('topic')->where('topic', '!=', '')->distinct()->orderBy('topic')->pluck('topic');
+        $difficulties = ['easy', 'medium', 'hard'];
+
+        return view("contents.admin.question.index", compact("questions", "topics", "difficulties"));
     }
 
     /**

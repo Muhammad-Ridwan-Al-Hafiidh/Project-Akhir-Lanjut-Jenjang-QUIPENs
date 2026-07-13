@@ -20,7 +20,8 @@ class FeedbackActivity extends Component
      */
     public function render()
     {
-        $feedbacks =  Feedback::paginate();
+        $feedbacks =  Feedback::paginate(10, ['*'], 'feedbackPage');
         return view('livewire.box.feedback-activity', compact('feedbacks'));
     }
 }
+

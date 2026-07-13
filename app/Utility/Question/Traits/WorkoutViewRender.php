@@ -121,6 +121,11 @@ trait WorkoutViewRender
     public function ReviewChecker(Question $question, Workout $workout): string
     {
         $answers = json_decode($question->answer, false);
+        $diff = $question->difficulty ?? '';
+        if ($diff === 'easy') $diffBadge = '<span class="badge bg-success ms-2">Easy</span>';
+        elseif ($diff === 'medium') $diffBadge = '<span class="badge bg-warning text-dark ms-2">Medium</span>';
+        elseif ($diff === 'hard') $diffBadge = '<span class="badge bg-danger ms-2">Hard</span>';
+        else $diffBadge = '';
 
         return view("livewire.factory.question." . $this->className . ".review", [
             'question' => $question,
@@ -128,6 +133,7 @@ trait WorkoutViewRender
             'correctAnswer' => $answers->correctAnswer,
             'workout' => $workout,
             'title' => $question->title,
+            'difficultyBadge' => $diffBadge,
             'question_body' => $question->question_body
         ])->render();
     }
